@@ -49,10 +49,13 @@
             android:id="@+id/inputText"
             android:background="@android:color/transparent"
             android:layout_height="wrap_content"
+            android:maxHeight="60dp"
             android:textColor="@color/colorEditText"
             android:hint="@string/hintEdit"
+            android:scrollbars="vertical"
+            android:imeOptions="flagNoEnterAction"
             android:layout_weight="9"
-            android:inputType="textCapSentences"/>
+            android:inputType="textCapSentences|textMultiLine"/>
         <Button
             android:layout_width="39dp"
             android:layout_height="39dp"
