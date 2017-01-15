@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_marginTop="@dimen/fab_margin">
+
+    <!--
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/message_left_input_text"
+        android:layout_alignParentLeft="true"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="5dp"
+        android:layout_marginBottom="5dp"
+        android:layout_marginTop="5dp"
+        android:orientation="vertical" > -->
+
+    <TextView
+        android:id="@+id/left_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="left"
+        android:textSize="@dimen/message_text_size"
+        android:background="@drawable/message_left_input_text"
+        android:textColor="@color/colorLeftText"
+        android:text="TextView"
+        android:layout_marginLeft="@dimen/text_margin"
+        android:layout_alignParentLeft="true"/>
+
+    <TextView
+        android:id="@+id/right_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="right"
+        android:textSize="@dimen/message_text_size"
+        android:background="@drawable/message_right_input_text"
+        android:textColor="@color/colorRightText"
+        android:text="TextView"
+        android:layout_marginRight="@dimen/text_margin"
+        android:layout_alignParentRight="true" />
+
+
+    <!-- Not using time & date as of now
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginBottom="5dp"
+        android:layout_marginLeft="5dp"
+        android:layout_marginRight="15dp"
+        android:orientation="horizontal" >
+
+        <TextView
+            android:id="@+id/dataAndTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="right"
+            android:textSize="15sp"
+            android:textColor="#001199"
+            android:text="gggggggggg" />
+
+    </LinearLayout>
+    -->
+
+    <!-- </LinearLayout> -->
+
+</RelativeLayout>

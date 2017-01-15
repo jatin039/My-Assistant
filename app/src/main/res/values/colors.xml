@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#46ADAD</color>
+    <color name="colorPrimaryDark">#359C9C</color>
+    <color name="colorAccent">#FF4081</color>
+
+    <!-- Edit text view properties -->
+    <color name="editTextStartColor">#FFFFFF</color>
+    <color name="editTextEndColor">#FAFAFA</color>
+
+    <!-- message text view left properties i.e information/messages sent to user-->
+    <color name="textViewMessageLeftStartColor">@color/colorPrimary</color>
+    <color name="textViewMessageLeftEndColor">@color/colorPrimary</color>
+
+    <!-- message text view right properties i.e messages/questions sent by user-->
+    <color name="textViewMessageRightStartColor">#5588FF</color>
+    <color name="textViewMessageRightEndColor">#2288EE</color>
+
+    <color name="colorLeftText">#DDFFFF</color>
+    <color name="colorRightText">#110044</color>
+    <color name="colorEditText">#440044</color>
+</resources>

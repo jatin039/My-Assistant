@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior"
+    tools:context="app.developer.jtsingla.myassistant.HomeActivity"
+    tools:showIn="@layout/activity_home"
+    android:paddingLeft="@dimen/text_margin"
+    android:paddingBottom="@dimen/text_margin"
+    android:paddingRight="@dimen/text_margin"
+    android:paddingTop="0dp"
+    android:background="@drawable/chat_background"
+    android:fitsSystemWindows="true">
+
+    <!--<ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:isScrollContainer="true">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">-->
+            <ListView
+                android:layout_width="match_parent"
+                android:id="@+id/message_list"
+                android:layout_above="@+id/edit_bar"
+                android:divider="@android:color/transparent"
+                android:dividerHeight="@dimen/text_margin"
+                android:layout_height="match_parent">
+            </ListView>
+       <!-- </LinearLayout>
+    </ScrollView> -->
+
+    <LinearLayout
+        android:id="@+id/edit_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:weightSum="10"
+        android:paddingBottom="@dimen/text_margin"
+        android:layout_margin="@dimen/text_margin"
+        android:orientation="horizontal"
+        android:background="@drawable/input_edit_text">
+        <EditText
+            android:layout_width="match_parent"
+            android:id="@+id/inputText"
+            android:background="@android:color/transparent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/colorEditText"
+            android:hint="@string/hintEdit"
+            android:layout_weight="9"
+            android:inputType="textCapSentences"/>
+        <Button
+            android:layout_width="39dp"
+            android:layout_height="39dp"
+            android:layout_marginRight="5dp"
+            android:layout_marginLeft="@dimen/text_margin"
+            android:foregroundTint="@color/colorLeftText"
+            android:foreground="@drawable/send_now"
+            android:background="@drawable/button_circular"
+            style="?android:attr/borderlessButtonStyle"
+            android:onClick="handleMessage"/>
+    </LinearLayout>
+</RelativeLayout>
