@@ -1,6 +1,7 @@
 package app.developer.jtsingla.myassistant;
 
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -84,12 +85,19 @@ public class HomeActivity extends AppCompatActivity {
         ListView listView = (ListView) findViewById(R.id.message_list);
         listView.setAdapter(adapter);
         listView.setSelection(adapter.getCount()-1);
+
+        /* set the status bar icon to black */
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            View v = (View) findViewById(R.id.inputText);
+            v.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+        }
     }
 
     public void handleMessage(View v) {
         EditText editText = (EditText) findViewById(R.id.inputText);
 
         messages.add(new Message(true, editText.getText().toString()));
+        messages.add(new Message(false, "Sorry, I didn't understand."));
         displayMessages();
         editText.setText("");
         writeToSharedPreferences();

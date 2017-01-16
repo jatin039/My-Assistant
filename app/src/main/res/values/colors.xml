@@ -13,10 +13,10 @@
     <color name="textViewMessageLeftEndColor">@color/colorPrimary</color>
 
     <!-- message text view right properties i.e messages/questions sent by user-->
-    <color name="textViewMessageRightStartColor">#5588FF</color>
-    <color name="textViewMessageRightEndColor">#2288EE</color>
+    <color name="textViewMessageRightStartColor">#5599DD</color>
+    <color name="textViewMessageRightEndColor">#4488CC</color>
 
     <color name="colorLeftText">#DDFFFF</color>
-    <color name="colorRightText">#110044</color>
+    <color name="colorRightText">#DDFFFF</color>
     <color name="colorEditText">#440044</color>
 </resources>
