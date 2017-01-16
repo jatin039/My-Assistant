@@ -1,5 +1,6 @@
 package app.developer.jtsingla.myassistant;
 
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
@@ -24,7 +25,7 @@ import java.util.List;
 
 public class HomeActivity extends AppCompatActivity {
 
-    public ArrayList<Message> messages;
+    public static ArrayList<Message> messages;
     public final static String CHAT = "chat";
     public final static String MESSAGES = "messages";
 
@@ -33,7 +34,7 @@ public class HomeActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
-        messages = readFromSharedPreferences();
+        messages = readFromSharedPreferences(this);
         displayMessages();
     }
 
@@ -59,8 +60,8 @@ public class HomeActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private ArrayList<Message> readFromSharedPreferences() {
-        SharedPreferences sharedPreferences = this.getSharedPreferences(CHAT, this.MODE_PRIVATE);
+    public static ArrayList<Message> readFromSharedPreferences(Context context) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences(CHAT, context.MODE_PRIVATE);
         String json = sharedPreferences.getString(MESSAGES, null);
         if (json == null) {
             return (messages = new ArrayList<Message>());
@@ -71,8 +72,8 @@ public class HomeActivity extends AppCompatActivity {
         return messages;
     }
 
-    private void writeToSharedPreferences() {
-        SharedPreferences sharedPreferences = this.getSharedPreferences(CHAT, MODE_PRIVATE);
+    public static void writeToSharedPreferences(Context context) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences(CHAT, MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
         Gson gson = new Gson();
         String json = gson.toJson(messages);
@@ -97,9 +98,9 @@ public class HomeActivity extends AppCompatActivity {
         EditText editText = (EditText) findViewById(R.id.inputText);
 
         messages.add(new Message(true, editText.getText().toString()));
-        messages.add(new Message(false, "Sorry, I didn't understand."));
+        ActionDecider.performAction(this, editText.getText().toString());
         displayMessages();
         editText.setText("");
-        writeToSharedPreferences();
+        writeToSharedPreferences(this);
     }
 }
