@@ -5,7 +5,8 @@
         <shape android:shape="oval">
             <solid android:color="@color/colorAccent"/>
             <padding
-                android:bottom="5dp" />
+                android:bottom="5dp"
+                android:top="5dp"/>
         </shape>
     </item>
 </ripple>

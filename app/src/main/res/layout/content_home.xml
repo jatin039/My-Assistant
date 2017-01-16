@@ -11,7 +11,7 @@
     android:paddingBottom="@dimen/text_margin"
     android:paddingRight="@dimen/text_margin"
     android:paddingTop="0dp"
-    android:background="@drawable/chat_background"
+    android:background="#FFFFFF"
     android:fitsSystemWindows="true">
 
     <!--<ScrollView
@@ -43,6 +43,7 @@
         android:paddingBottom="@dimen/text_margin"
         android:layout_margin="@dimen/text_margin"
         android:orientation="horizontal"
+        android:gravity="center_vertical"
         android:background="@drawable/input_edit_text">
         <EditText
             android:layout_width="match_parent"
