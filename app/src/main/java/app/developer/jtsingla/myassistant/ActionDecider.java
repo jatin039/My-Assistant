@@ -3,7 +3,10 @@ package app.developer.jtsingla.myassistant;
 import android.content.Context;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+
+import app.developer.jtsingla.myassistant.Actions.Call;
 
 /**
  * Created by jssingla on 1/16/17.
@@ -11,7 +14,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class ActionDecider {
     private static String[] actionsKeywords = {
-      "Call", "Reminder", "Message", "Camera"
+      "call", "reminder", "message", "camera"
     };
 
     private static String[] randomMessagesForUnhandledCases = {
@@ -28,16 +31,16 @@ public class ActionDecider {
     private static void callActionClass (String message, String match, Context context) {
         ArrayList<Message> messages = HomeActivity.messages;
         switch (match) {
-            case "Call":
-                messages.add(new Message(false, "Trying to make the call")); // test
+            case "call":
+                Call.performCall(message);
                 break;
-            case "Reminder":
+            case "reminder":
                 messages.add(new Message(false, "Trying to set the reminder")); // test
                 break;
-            case "Message":
+            case "message":
                 messages.add(new Message(false, "Trying to send the message")); // test
                 break;
-            case "Camera":
+            case "camera":
                 messages.add(new Message(false, "Trying to open the camera")); // test
                 break;
             default:
@@ -45,23 +48,45 @@ public class ActionDecider {
         }
     }
 
-    private static String generateRandomMessage() {
-        int min = 0, max = randomMessagesForUnhandledCases.length;
-        int randomIndex = min + (int)(Math.random() * (max + 1));
-        return randomMessagesForUnhandledCases[randomIndex];
+    public static String generateRandomMessage(String[] stringArray) {
+        int min = 0, max = stringArray.length;
+        int randomIndex = min + (int)(Math.random() * max);
+        return stringArray[randomIndex];
     }
 
     public static void performAction(Context context, String message) {
         /* ToDo: need to figure out the cases where both keywords might be there,
                   * May need to limit such scenarios or handle appropriately */
-        for (int i = 0; i < actionsKeywords.length; i++) {
-            if (message.contains(actionsKeywords[i])) {
-                callActionClass(message, actionsKeywords[i],context);
-                return;
-            }
+        String match = parseMessageForStringArray(message, actionsKeywords);
+        if (match == null) {
+            /* if none of the patterns were matched, generate random message and send to user*/
+            ArrayList<Message> messages = HomeActivity.messages;
+            messages.add(new Message(false, generateRandomMessage(randomMessagesForUnhandledCases)));
+            return;
         }
-        /* if none of the patterns were matched, generate random message and send */
-        ArrayList<Message> messages = HomeActivity.messages;
-        messages.add(new Message(false, generateRandomMessage()));
+        callActionClass(message, match, context);
+    }
+
+    public static String parseMessageForStringArray(String message, String[] keywords) {
+        for (int i = 0; i < keywords.length; i++) {
+            if (message.toLowerCase().contains(" " + keywords[i] + " ")) { /* exact match */
+                return keywords[i];
+            }
+            /* search for "keyword " if only its a first word, avoiding matches like "*keyword " */
+            if (message.toLowerCase().contains(keywords[i] + " ") &&
+                    message.toLowerCase().startsWith(keywords[i])) {
+                return keywords[i];
+            }
+
+            /* search for " keyword" if only its a last word, avoiding matches like " keyword*" */
+            if (message.toLowerCase().contains(" " + keywords[i]) &&
+                    message.toLowerCase().endsWith(keywords[i])) {
+                return keywords[i];
+            }
+
+            /* allow dots "." or "s" after keyword, as people generally tend to give "keyword..." as message */
+            /* TODO */
+        }
+        return null;
     }
 }

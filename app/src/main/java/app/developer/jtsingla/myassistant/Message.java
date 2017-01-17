@@ -8,7 +8,7 @@ public class Message {
     private boolean isRight;
     private String messageText;
 
-    Message(boolean isRight, String messageText) {
+    public Message(boolean isRight, String messageText) {
         this.isRight = isRight;
         this.messageText = messageText;
     }
