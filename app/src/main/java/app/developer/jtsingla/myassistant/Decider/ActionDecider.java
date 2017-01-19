@@ -1,12 +1,12 @@
-package app.developer.jtsingla.myassistant;
+package app.developer.jtsingla.myassistant.Decider;
 
 import android.content.Context;
 
 import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 
 import app.developer.jtsingla.myassistant.Actions.Call;
+import app.developer.jtsingla.myassistant.Activity.HomeActivity;
+import app.developer.jtsingla.myassistant.Utils.Message;
 
 /**
  * Created by jssingla on 1/16/17.
@@ -59,7 +59,7 @@ public class ActionDecider {
                   * May need to limit such scenarios or handle appropriately */
         String match = parseMessageForStringArray(message, actionsKeywords);
         if (match == null) {
-            /* if none of the patterns were matched, generate random message and send to user*/
+            /* if none of the patterns matched, generate random message and send to user*/
             ArrayList<Message> messages = HomeActivity.messages;
             messages.add(new Message(false, generateRandomMessage(randomMessagesForUnhandledCases)));
             return;

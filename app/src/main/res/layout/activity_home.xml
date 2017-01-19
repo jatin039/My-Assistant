@@ -5,6 +5,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    tools:context="app.developer.jtsingla.myassistant.HomeActivity">
+    tools:context="app.developer.jtsingla.myassistant.Activity.HomeActivity">
     <include layout="@layout/content_home" />
 </android.support.design.widget.CoordinatorLayout>

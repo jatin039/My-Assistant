@@ -1,4 +1,4 @@
-package app.developer.jtsingla.myassistant;
+package app.developer.jtsingla.myassistant.Utils;
 
 /**
  * Created by jssingla on 1/15/17.

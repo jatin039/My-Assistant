@@ -2,9 +2,9 @@ package app.developer.jtsingla.myassistant.Actions;
 
 import java.util.ArrayList;
 
-import app.developer.jtsingla.myassistant.ActionDecider;
-import app.developer.jtsingla.myassistant.HomeActivity;
-import app.developer.jtsingla.myassistant.Message;
+import app.developer.jtsingla.myassistant.Decider.ActionDecider;
+import app.developer.jtsingla.myassistant.Activity.HomeActivity;
+import app.developer.jtsingla.myassistant.Utils.Message;
 
 /**
  * Created by jssingla on 1/16/17.

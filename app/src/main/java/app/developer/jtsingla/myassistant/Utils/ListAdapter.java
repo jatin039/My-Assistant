@@ -1,16 +1,16 @@
-package app.developer.jtsingla.myassistant;
+package app.developer.jtsingla.myassistant.Utils;
 
 import android.content.Context;
-import android.graphics.drawable.Drawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
-import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+
+import app.developer.jtsingla.myassistant.R;
+import app.developer.jtsingla.myassistant.Utils.Message;
 
 /**
  * Created by jssingla on 1/15/17.
