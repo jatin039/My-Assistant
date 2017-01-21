@@ -1,13 +1,19 @@
 package app.developer.jtsingla.myassistant.Activity;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ListView;
 
@@ -16,6 +22,7 @@ import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import android.Manifest;
 
 import app.developer.jtsingla.myassistant.Decider.ActionDecider;
 import app.developer.jtsingla.myassistant.Utils.ListAdapter;
@@ -35,6 +42,7 @@ public class HomeActivity extends AppCompatActivity {
 
         messages = readFromSharedPreferences(this);
         displayMessages();
+        Permissions.checkAllPermissions(HomeActivity.this);
     }
 
     @Override
@@ -101,5 +109,63 @@ public class HomeActivity extends AppCompatActivity {
         displayMessages();
         editText.setText("");
         writeToSharedPreferences(this);
+    }
+
+    public static void hideSoftKeyboard(Activity activity) {
+        if(activity.getCurrentFocus()!=null) {
+            InputMethodManager inputMethodManager = (InputMethodManager) activity
+                    .getSystemService(INPUT_METHOD_SERVICE);
+            inputMethodManager.hideSoftInputFromWindow(activity.getCurrentFocus()
+                    .getWindowToken(), 0);
+        }
+    }
+
+    public static class Permissions {
+        private static final String[] PERMISSIONS_CONTACT = {Manifest.permission.READ_CONTACTS,
+                Manifest.permission.WRITE_CONTACTS};
+        private static final int REQUEST_CONTACTS_READ = 1;
+
+        public static final String PERMISSION_TAG = "permissions_tag";
+
+        public static void requestContactsReadPermission(final Activity activity) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(activity,
+                    Manifest.permission.READ_CONTACTS)) {
+                View v = activity.findViewById(R.id.edit_bar);
+                /* hide the keyboard before displaying snackbar, otherwise it will be covered by
+                 * the keyboard */
+                hideSoftKeyboard(activity);
+                Snackbar.make(v, R.string.permission_contacts_rationale,
+                        Snackbar.LENGTH_INDEFINITE)
+                        .setAction(R.string.ok, new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                ActivityCompat
+                                        .requestPermissions(activity, PERMISSIONS_CONTACT,
+                                                REQUEST_CONTACTS_READ);
+                            }
+                        })
+                        .show();
+            } else {
+                ActivityCompat.requestPermissions(activity, PERMISSIONS_CONTACT, REQUEST_CONTACTS_READ);
+            }
+        }
+
+        public static void checkAllPermissions(Activity activity) {
+            /* check Contacts Read Permission */
+            checkContactReadPermission(activity);
+        }
+
+        public static void checkContactReadPermission(Activity activity) {
+            if (ActivityCompat.checkSelfPermission(activity, Manifest.permission.READ_CONTACTS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                // Read contacts permissions have not been granted.
+                Log.i(PERMISSION_TAG, "Contact read permissions has NOT been granted. Requesting permissions.");
+                requestContactsReadPermission(activity);
+            } else {
+                // Contact permissions have been granted.
+                Log.i(PERMISSION_TAG,
+                        "Contact read permissions have already been granted.");
+            }
+        }
     }
 }

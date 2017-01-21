@@ -14,7 +14,10 @@ import app.developer.jtsingla.myassistant.Utils.Message;
 
 public class ActionDecider {
     private static String[] actionsKeywords = {
-      "call", "reminder", "message", "camera"
+      "call", "phone", "ring",  //synonyms to call
+      "reminder",
+      "message",
+      "camera"
     };
 
     private static String[] randomMessagesForUnhandledCases = {
@@ -31,8 +34,10 @@ public class ActionDecider {
     private static void callActionClass (String message, String match, Context context) {
         ArrayList<Message> messages = HomeActivity.messages;
         switch (match) {
-            case "call":
-                Call.performCall(message);
+            case "call":  //fallthrough
+            case "phone": //fallthrough
+            case "ring":
+                Call.attemptPerformCall(context, message);
                 break;
             case "reminder":
                 messages.add(new Message(false, "Trying to set the reminder")); // test
