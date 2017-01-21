@@ -178,9 +178,10 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     public static class Permissions {
-        private static final String[] PERMISSIONS_CONTACT = {Manifest.permission.READ_CONTACTS,
-                Manifest.permission.WRITE_CONTACTS};
+        private static final String[] PERMISSIONS_CONTACT = {Manifest.permission.READ_CONTACTS};
+        private static final String[] PERMISSION_CALLS = {Manifest.permission.CALL_PHONE};
         private static final int REQUEST_CONTACTS_READ = 1;
+        private static final int MAKE_PHONE_CALLS = 2;
 
         public static final String PERMISSION_TAG = "permissions_tag";
 
@@ -207,21 +208,59 @@ public class HomeActivity extends AppCompatActivity {
             }
         }
 
+        public static void requestMakeCallPermission(final Activity activity) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(activity,
+                    Manifest.permission.CALL_PHONE)) {
+                View v = activity.findViewById(R.id.edit_bar);
+                /* hide the keyboard before displaying snackbar, otherwise it will be covered by
+                 * the keyboard */
+                hideSoftKeyboard(activity);
+                Snackbar.make(v, R.string.make_calls,
+                        Snackbar.LENGTH_INDEFINITE)
+                        .setAction(R.string.ok, new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                ActivityCompat
+                                        .requestPermissions(activity, PERMISSION_CALLS,
+                                                MAKE_PHONE_CALLS);
+                            }
+                        })
+                        .show();
+            } else {
+                ActivityCompat.requestPermissions(activity, PERMISSION_CALLS, MAKE_PHONE_CALLS);
+            }
+        }
+
         public static void checkAllPermissions(Activity activity) {
             /* check Contacts Read Permission */
             checkContactReadPermission(activity);
+            checkMakeCallPermission(activity);
         }
 
         public static void checkContactReadPermission(Activity activity) {
             if (ActivityCompat.checkSelfPermission(activity, Manifest.permission.READ_CONTACTS)
                     != PackageManager.PERMISSION_GRANTED) {
                 // Read contacts permissions have not been granted.
-                Log.i(PERMISSION_TAG, "Contact read permissions has NOT been granted. Requesting permissions.");
+                Log.i(PERMISSION_TAG, "Contact read permissions has NOT been granted. Requesting" +
+                        " permissions.");
                 requestContactsReadPermission(activity);
             } else {
                 // Contact permissions have been granted.
                 Log.i(PERMISSION_TAG,
                         "Contact read permissions have already been granted.");
+            }
+        }
+
+        public static void checkMakeCallPermission(Activity activity) {
+            if (ActivityCompat.checkSelfPermission(activity, Manifest.permission.CALL_PHONE)
+                    != PackageManager.PERMISSION_GRANTED) {
+                // Make calls permissions have not been granted.
+                Log.i(PERMISSION_TAG, "Make call permission has not been granted. Requesting" +
+                        " permissions.");
+                requestMakeCallPermission(activity);
+            } else {
+                // Make calls permission has been granted.
+                Log.i(PERMISSION_TAG, "Make call permission have already been granted.");
             }
         }
     }

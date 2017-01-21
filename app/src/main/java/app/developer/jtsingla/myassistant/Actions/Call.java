@@ -3,10 +3,13 @@ package app.developer.jtsingla.myassistant.Actions;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.net.Uri;
 import android.provider.ContactsContract;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.util.Pair;
 
@@ -129,7 +132,7 @@ public class Call {
                     messages.add(new Message(false, ActionDecider.generateRandomMessage(callResponseMessages)));
                     Map.Entry<String, String> entry = probableContacts.entrySet().iterator().next();
                     Pair<String, String> contact = new Pair<>(entry.getKey(), entry.getValue());
-                    performCall(contact);
+                    performCall(context, contact);
                     break;
                 default: /* multiple results */
                     Iterator it = probableContacts.entrySet().iterator();
@@ -181,7 +184,7 @@ public class Call {
                 if (i == idx) {
                     Map.Entry<String, String> pair = (Map.Entry)it.next();
                     Pair<String, String> contact = new Pair<>(pair.getKey(), pair.getValue());
-                    performCall(contact);
+                    performCall(context, contact);
                     actionHandled(context);
                     break;
                 }
@@ -260,6 +263,12 @@ public class Call {
                 == PackageManager.PERMISSION_GRANTED);
     }
 
+    /* returns true if permission is granted */
+    private static boolean isMakeCallPermission(Activity activity) {
+        return (ActivityCompat.checkSelfPermission(activity, Manifest.permission.CALL_PHONE)
+                == PackageManager.PERMISSION_GRANTED);
+    }
+
     /* returns true if message says not to make a call */
     private static boolean negateCall(String message) {
         ArrayList<Message> messages = HomeActivity.messages;
@@ -273,9 +282,18 @@ public class Call {
         return false;
     }
 
-    private static void performCall(Pair<String, String> contact) {
+    private static void performCall(Context context, Pair<String, String> contact) {
         // make a call to contact.
         ArrayList<Message> messages = HomeActivity.messages;
-        messages.add(new Message(false, makingCall + contact.first));
+        Intent intent = new Intent(Intent.ACTION_CALL);
+        intent.setData(Uri.parse("tel:" + contact.second));
+        if (isMakeCallPermission((Activity)context)) {
+            messages.add(new Message(false, makingCall + contact.first));
+            context.startActivity(intent);
+        } else {
+            messages.add(new Message(false, "Please give permission to call."));
+            /* request permission again */
+            HomeActivity.Permissions.checkMakeCallPermission((Activity)context);
+        }
     }
 }

@@ -8,6 +8,7 @@
 
     <!-- Permissions -->
     <string name="permission_contacts_rationale">Please provide read permission to your contacts.</string>
+    <string name="make_calls">Please provide call permission.</string>
     <string name="ok">OK</string>
 
 </resources>
