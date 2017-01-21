@@ -18,12 +18,14 @@ import android.widget.EditText;
 import android.widget.ListView;
 
 import com.google.gson.Gson;
+import com.google.gson.internal.ObjectConstructor;
 import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import android.Manifest;
 
+import app.developer.jtsingla.myassistant.Actions.Call;
 import app.developer.jtsingla.myassistant.Decider.ActionDecider;
 import app.developer.jtsingla.myassistant.Utils.ListAdapter;
 import app.developer.jtsingla.myassistant.Utils.Message;
@@ -35,12 +37,19 @@ public class HomeActivity extends AppCompatActivity {
     public final static String CHAT = "chat";
     public final static String MESSAGES = "messages";
 
+    public final static String EXPECTED_RESPONSE = "expectedResponse";
+    public final static String ACTION = "action";
+    public final static String[] ACTIONS = {
+            "call", "reminder" // ... TODO: add as and when necessary
+    };
+    public final static String ACTION_OBJECT = "object";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
-        messages = readFromSharedPreferences(this);
+        messages = readMessagesFromSharedPreferences(this);
         displayMessages();
         Permissions.checkAllPermissions(HomeActivity.this);
     }
@@ -67,8 +76,35 @@ public class HomeActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    public static ArrayList<Message> readFromSharedPreferences(Context context) {
-        SharedPreferences sharedPreferences = context.getSharedPreferences(CHAT, context.MODE_PRIVATE);
+    public static String readActionFromSharedPreferences(Context context) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences(EXPECTED_RESPONSE,
+                                                                        context.MODE_PRIVATE);
+        String action = sharedPreferences.getString(ACTION, null);
+        return action;
+    }
+
+    public static String readJsonActionObjectFromSharedPreferences(Context context) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences(EXPECTED_RESPONSE,
+                                                                        context.MODE_PRIVATE);
+        String jsonActionResponse = sharedPreferences.getString(ACTION_OBJECT, null);
+        return jsonActionResponse;
+    }
+
+    public static void writeActionToSharedPreferences(Context context, String action,
+                                                            Object object) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences(EXPECTED_RESPONSE,
+                                                                            context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString(ACTION, action);
+        Gson gson = new Gson();
+        String json = gson.toJson(object);
+        editor.putString(ACTION_OBJECT, json);
+        editor.commit();
+    }
+
+    public static ArrayList<Message> readMessagesFromSharedPreferences(Context context) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences(CHAT,
+                                                            context.MODE_PRIVATE);
         String json = sharedPreferences.getString(MESSAGES, null);
         if (json == null) {
             return (messages = new ArrayList<Message>());
@@ -79,7 +115,7 @@ public class HomeActivity extends AppCompatActivity {
         return messages;
     }
 
-    public static void writeToSharedPreferences(Context context) {
+    public static void writeMessagesToSharedPreferences(Context context) {
         SharedPreferences sharedPreferences = context.getSharedPreferences(CHAT, MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
         Gson gson = new Gson();
@@ -105,10 +141,31 @@ public class HomeActivity extends AppCompatActivity {
         EditText editText = (EditText) findViewById(R.id.inputText);
 
         messages.add(new Message(true, editText.getText().toString()));
-        ActionDecider.performAction(this, editText.getText().toString());
+        String action = readActionFromSharedPreferences(this);
+        if (action != null) {
+            /* some class is expecting action, so this message should be delivered to that class */
+            handleAction(action, editText.getText().toString(), this);
+        } else {
+            /* decide new action as no class is expecting action */
+            ActionDecider.performAction(this, editText.getText().toString());
+        }
         displayMessages();
         editText.setText("");
-        writeToSharedPreferences(this);
+        writeMessagesToSharedPreferences(this);
+    }
+
+    public static void handleAction(String action, String message, Context context) {
+        switch (action) {
+            case "call":
+                //call action handler for call
+                Call.actionHandler(context, message);
+                break;
+            case "reminder":
+                //call action handler for reminder
+                break;
+            default:
+                /* should never come here */
+        }
     }
 
     public static void hideSoftKeyboard(Activity activity) {

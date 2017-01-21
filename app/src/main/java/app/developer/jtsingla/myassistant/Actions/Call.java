@@ -8,10 +8,16 @@ import android.database.Cursor;
 import android.provider.ContactsContract;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
+import android.util.Pair;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import app.developer.jtsingla.myassistant.Decider.ActionDecider;
@@ -83,6 +89,9 @@ public class Call {
     private static String permissionForContactRead = "Please provide me the permission to " +
             "read your contacts, so that I can proceed.";
 
+    private static String noContactsFound = "Didn't find any contact with name";
+    private static String makingCall = "Making a call to ";
+
     /* tries to perform the call */
     public static void attemptPerformCall(Context context, String message) {
         if (negateCall(message)) return; /* return if user is asking not to make a call */
@@ -100,10 +109,11 @@ public class Call {
              * then after gaining the access, from onRequestPermissionResults, handle this
              * request. This feature is pending as of now.*/
         } else {
-            messages.add(new Message(false, ActionDecider.generateRandomMessage(callResponseMessages)));
+            /* not showing random messages as of now */
+            //messages.add(new Message(false, ActionDecider.generateRandomMessage(callResponseMessages)));
             // Read contacts permissions was already granted, we should follow with call.
             String name = extractName(message);
-            HashMap<String, String> probableContacts = parseContacts((Activity) context,
+            LinkedHashMap<String, String> probableContacts = parseContacts((Activity) context,
                     name.toLowerCase());
             /* TODO : handle cases:
              * Case 1: when only 1 result
@@ -111,11 +121,77 @@ public class Call {
              *          ask the user to select a contact, and map that string to selected contact
              *          for next time onwards
              * Case 3: multiple results */
-            Iterator it = probableContacts.entrySet().iterator();
-            while(it.hasNext()) {
-                Map.Entry pair = (Map.Entry)it.next();
-                messages.add(new Message(false, pair.getKey() + ": " + pair.getValue()));
+            switch (probableContacts.size()) {
+                case 0: /* no results found */
+                    messages.add(new Message(false, noContactsFound + ": " + name));
+                    break;
+                case 1: /* only one result found */
+                    messages.add(new Message(false, ActionDecider.generateRandomMessage(callResponseMessages)));
+                    Map.Entry<String, String> entry = probableContacts.entrySet().iterator().next();
+                    Pair<String, String> contact = new Pair<>(entry.getKey(), entry.getValue());
+                    performCall(contact);
+                    break;
+                default: /* multiple results */
+                    Iterator it = probableContacts.entrySet().iterator();
+                    messages.add(new Message(false, "We have found " + probableContacts.size() +
+                        " results. Please choose the result number to select a contact."));
+                    int i = 1;
+                    while(it.hasNext()) {
+                        Map.Entry pair = (Map.Entry)it.next();
+                        messages.add(new Message(false, i + "- "+ pair.getKey() + ": " + pair.getValue()));
+                        i++;
+                    }
+                    /* now we need input from user to give the contact number,
+                     * putting call as an expecting action */
+                    HomeActivity.writeActionToSharedPreferences(context, "call", probableContacts);
             }
+        }
+    }
+
+    private static void actionHandled(Context context) {
+        String action = HomeActivity.readActionFromSharedPreferences(context);
+        // only reset the action if it was call, should not interfere if action is something else.
+        if (action == "call") HomeActivity.writeActionToSharedPreferences(context, null, null);
+    }
+
+    public static void actionHandler(Context context, String message) {
+        String jsonAction = HomeActivity.readJsonActionObjectFromSharedPreferences(context);
+        ArrayList<Message> messages = HomeActivity.messages;
+        if (jsonAction == null) {
+            /* if object required is not there */
+            // TODO: is this possible? need use cases for this.
+        }
+        LinkedHashMap<String, String> probableContacts;
+        Gson gson = new Gson();
+        Type type = new TypeToken<LinkedHashMap<String, String>>() {}.getType();
+        probableContacts = gson.fromJson(jsonAction, type);
+        /* for now assuming message to be only a number, TODO: think of other use cases for call
+         * maybe user entered name of contact, do a exact match search then **MAYBE** */
+        try {
+            int idx = Integer.parseInt(message);
+            if (idx > probableContacts.size() || idx < 1) {
+                messages.add(new Message(false, "Please select a number from 1 - " + probableContacts.size()));
+                /* still expect a action from user as he entered invalid number,
+                   may want to enter again */
+                return;
+            }
+            Iterator it = probableContacts.entrySet().iterator();
+            int i = 1;
+            while (it.hasNext()) {
+                if (i == idx) {
+                    Map.Entry<String, String> pair = (Map.Entry)it.next();
+                    Pair<String, String> contact = new Pair<>(pair.getKey(), pair.getValue());
+                    performCall(contact);
+                    actionHandled(context);
+                    break;
+                }
+                it.next();
+                i++;
+            }
+        } catch (NumberFormatException nfe) {
+            Log.e("Call", nfe.getMessage());
+            actionHandled(context);
+            ActionDecider.performAction(context, message);
         }
     }
 
@@ -147,10 +223,10 @@ public class Call {
         return splitMessage[splitMessage.length-1].trim();
     }
 
-    private static HashMap<String, String> parseContacts(Activity activity, String contactName) {
+    private static LinkedHashMap<String, String> parseContacts(Activity activity, String contactName) {
         Cursor phones = activity.getContentResolver().query(ContactsContract
                 .CommonDataKinds.Phone.CONTENT_URI, null,null,null, null);
-        HashMap<String, String> probableContacts = new HashMap<>();
+        LinkedHashMap<String, String> probableContacts = new LinkedHashMap<>();
         while (phones.moveToNext())
         {
             String name = phones.getString(phones.getColumnIndex(ContactsContract
@@ -195,5 +271,11 @@ public class Call {
             }
         }
         return false;
+    }
+
+    private static void performCall(Pair<String, String> contact) {
+        // make a call to contact.
+        ArrayList<Message> messages = HomeActivity.messages;
+        messages.add(new Message(false, makingCall + contact.first));
     }
 }
