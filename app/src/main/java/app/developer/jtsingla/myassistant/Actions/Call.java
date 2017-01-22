@@ -94,6 +94,46 @@ public class Call {
 
     private static String noContactsFound = "Didn't find any contact with name";
     private static String makingCall = "Making a call to ";
+    private static String lotOfResults = "Please be more specific. " +
+            "There are a lot of results with ";
+    private static int MAX_RESULTS = 10;
+
+    private final static int convertStringResponseToInt(String message) {
+        switch (message.toLowerCase()) {
+            case "first":
+            case "one":
+                return 1;
+            case "second":
+            case "two":
+                return 2;
+            case "third":
+            case "three":
+                return 3;
+            case "forth":
+            case "four":
+                return 4;
+            case "fifth":
+            case "five":
+                return 5;
+            case "sixth":
+            case "six":
+                return 6;
+            case "seventh":
+            case "seven":
+                return 7;
+            case "eighth":
+            case "eight":
+                return 8;
+            case "ninth":
+            case "nine":
+                return 9;
+            case "tenth":
+            case "ten":
+                return 10;
+            default:
+                return 0;
+        }
+    }
 
     /* tries to perform the call */
     public static void attemptPerformCall(Context context, String message) {
@@ -135,6 +175,13 @@ public class Call {
                     performCall(context, contact);
                     break;
                 default: /* multiple results */
+                    /* if there are a lot of results more than MAX_RESULTS,
+                     * we ask user to be more specific.
+                     * TODO?? We may add action expected for Call but for now not adding that. */
+                    if (probableContacts.size() > MAX_RESULTS) {
+                        messages.add(new Message(false, lotOfResults + ": " + name));
+                        return;
+                    }
                     Iterator it = probableContacts.entrySet().iterator();
                     messages.add(new Message(false, "We have found " + probableContacts.size() +
                         " results. Please choose the result number to select a contact."));
@@ -171,7 +218,8 @@ public class Call {
         /* for now assuming message to be only a number, TODO: think of other use cases for call
          * maybe user entered name of contact, do a exact match search then **MAYBE** */
         try {
-            int idx = Integer.parseInt(message);
+            int idx = convertStringResponseToInt(message);
+            if (idx == 0) idx = Integer.parseInt(message);
             if (idx > probableContacts.size() || idx < 1) {
                 messages.add(new Message(false, "Please select a number from 1 - " + probableContacts.size()));
                 /* still expect a action from user as he entered invalid number,
