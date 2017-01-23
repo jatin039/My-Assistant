@@ -174,8 +174,7 @@ public class CommonAPIs {
 
     /* returns true if permission is granted */
     private static boolean isReadContactsPermission(Activity activity) {
-        return (ActivityCompat.checkSelfPermission(activity, Manifest.permission.READ_CONTACTS)
-                == PackageManager.PERMISSION_GRANTED);
+        return isPermissionGranted(activity, Manifest.permission.READ_CONTACTS);
     }
 
     public final static int convertStringResponseToInt(String message) {
