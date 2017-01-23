@@ -16,7 +16,7 @@ public class ActionDecider {
     private static String[] actionsKeywords = {
       "call", "phone", "ring",  //synonyms to call
       "reminder",
-      "message",
+      "message", "text", "whatsapp",
       "camera"
     };
 
@@ -42,7 +42,9 @@ public class ActionDecider {
             case "reminder":
                 messages.add(new Message(false, "Trying to set the reminder")); // test
                 break;
-            case "message":
+            case "message": //fallthrough
+            case "text": //fallthrough
+            case "whatsapp":
                 messages.add(new Message(false, "Trying to send the message")); // test
                 break;
             case "camera":
