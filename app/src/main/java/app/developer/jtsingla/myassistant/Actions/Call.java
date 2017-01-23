@@ -131,7 +131,7 @@ public class Call {
                 }
                 Iterator it = probableContacts.entrySet().iterator();
                 messages.add(new Message(false, "We have found " + probableContacts.size() +
-                        " results. Please choose the result number to select a contact."));
+                        " results. Please choose a result no. to select a contact."));
                 int i = 1;
                 while (it.hasNext()) {
                     Map.Entry pair = (Map.Entry) it.next();
