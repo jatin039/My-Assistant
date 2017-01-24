@@ -94,21 +94,28 @@ public class CommonAPIs {
       * 3. Keyword you want to split message on,
       *    this will vary depending on action i.e call, text.. eg. "call", "text"
       * */
-    public static String extractName(String message, String[] keywords, String action) {
-        /* logic to retrieve name from the message */
-        /* to extract the message, we will replace the message to standard format
-        *  i.e "Call Someone" from "Make a call to Someone"
-        *  i.e "Text Someone" from "Make a text to Someone"
-        *
-        *  we will replace common known strings to this format and then proceed*/
-        message = replaceStringWithKeyword(keywords, action, message);
+    public static String extractName(String message, String[] keywords,
+                                     String action) throws ArrayIndexOutOfBoundsException {
+        try {
+            /* logic to retrieve name from the message */
+            /* to extract the message, we will replace the message to standard format
+            *  i.e "Call Someone" from "Make a call to Someone"
+            *  i.e "Text Someone" from "Make a text to Someone"
+            *
+            *  we will replace common known strings to this format and then proceed*/
+            message = replaceStringWithKeyword(keywords, action, message);
 
-        /* trim the message of all trimmable words */
-        message = trimMessageForContact(message);
+            /* trim the message of all trimmable words */
+            message = trimMessageForContact(message);
 
-        /* TODO: as of now expecting the name to be last in the sentence, not handling name first */
-        String[] splitMessage = message.split(action);
-        return splitMessage[splitMessage.length-1].trim();
+            /* TODO: as of now expecting the name to be last in the sentence, not handling name first */
+            String[] splitMessage = message.split(action);
+            return splitMessage[splitMessage.length-1].trim();
+        } catch (ArrayIndexOutOfBoundsException oobe) {
+            Log.e("extractName", "Only keyword was present in message. " +
+                    "Will ask user for input. will mark action as expected. " + oobe.getMessage());
+            return null;
+        }
     }
 
     /* this API will return list of probable contacts if you have contact read permission
@@ -219,7 +226,12 @@ public class CommonAPIs {
         String expectedAction = HomeActivity.readActionFromSharedPreferences(context);
         // only reset the action if it was call, should not interfere if action is something else.
         if (expectedAction == callingAction) HomeActivity
-                .writeActionToSharedPreferences(context, null, null);
+                .writeActionToSharedPreferences(context, null, null, null);
+    }
+
+    public static void markActionAsExpected(Context context, String action, String subAction,
+                                            Object actionObject) {
+        HomeActivity.writeActionToSharedPreferences(context, action, subAction, actionObject);
     }
 
     public static boolean isPermissionGranted(Activity activity, @NonNull String permission) {

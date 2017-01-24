@@ -14,6 +14,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -29,6 +30,7 @@ import static app.developer.jtsingla.myassistant.Utils.CommonAPIs.getProbableCon
 import static app.developer.jtsingla.myassistant.Utils.CommonAPIs.isNegate;
 import static app.developer.jtsingla.myassistant.Utils.CommonAPIs.isPermissionGranted;
 import static app.developer.jtsingla.myassistant.Utils.CommonAPIs.markActionAsDone;
+import static app.developer.jtsingla.myassistant.Utils.CommonAPIs.markActionAsExpected;
 
 /**
  * Created by jssingla on 1/16/17.
@@ -85,11 +87,32 @@ public class Call {
          "At your service, always"
     };
 
+    /* for handling actions */
     private static final String MYACTION = "call";
+
+    private enum actionTypes {
+        /* when user said a name which brought many results (1-MAX_RESULTS)
+         * take input from user and set this action type. */
+        GetResultFromContactList("GetResultFromContactList"),
+        /* when user is yet to enter a name, just entered the keyword. */
+        GetContact("GetContact");
+
+        private String actionType;
+
+        private actionTypes(String actionType) {
+            actionType = actionType;
+        }
+
+        public String getActionType() {
+            return actionType;
+        }
+    }
+
     private static String noContactsFound = "Didn't find any contact with name";
     private static String makingCall = "Making a call to ";
     private static String lotOfResults = "Please be more specific. " +
             "There are a lot of results with ";
+    private static String whomToCall = "Whom should I call?";
     private static int MAX_RESULTS = 10;
 
     /* tries to perform the call */
@@ -98,8 +121,24 @@ public class Call {
         ArrayList<Message> messages = HomeActivity.messages;
         /* check if we have permissions to Contacts */
         String name = extractName(message, callKeywords, "call");
+        if (name == null) {
+            /* only keyword was present in the message, no name */
+            /* ask user for further input and mark action as expected */
+            messages.add(new Message(false, whomToCall));
+            markActionAsExpected(context, MYACTION, actionTypes.GetContact.toString(),
+                    null/* user is expected to enter a name, so no probablecontacts are needed.*/);
+            return;
+        }
         LinkedHashMap<String, String> probableContacts =
                 getProbableContacts((Activity)context, name);
+
+        interfacePerformCall(probableContacts, name, context);
+    }
+
+    /* this api is interface between attempt call and actually performing a call */
+    private static void interfacePerformCall(LinkedHashMap<String, String> probableContacts,
+                                                    String contactName, Context context) {
+        ArrayList<Message> messages = HomeActivity.messages;
         if (probableContacts == null) {
             /* no request read permission, user will have to make new request. */
             return;
@@ -113,20 +152,21 @@ public class Call {
          * Case 3: multiple results */
         switch (probableContacts.size()) {
             case 0: /* no results found */
-                messages.add(new Message(false, noContactsFound + ": " + name));
+                messages.add(new Message(false, noContactsFound + ": " + contactName));
                 break;
             case 1: /* only one result found */
                 messages.add(new Message(false, ActionDecider.generateRandomMessage(callResponseMessages)));
                 Map.Entry<String, String> entry = probableContacts.entrySet().iterator().next();
                 Pair<String, String> contact = new Pair<>(entry.getKey(), entry.getValue());
                 performCall(context, contact);
+                markActionAsDone(context, MYACTION);
                 break;
             default: /* multiple results */
                 /* if there are a lot of results more than MAX_RESULTS,
                  * we ask user to be more specific.
                  * TODO?? We may add action expected for Call but for now not adding that. */
                 if (probableContacts.size() > MAX_RESULTS) {
-                    messages.add(new Message(false, lotOfResults + ": " + name));
+                    messages.add(new Message(false, lotOfResults + ": " + contactName));
                     return;
                 }
                 Iterator it = probableContacts.entrySet().iterator();
@@ -135,12 +175,15 @@ public class Call {
                 int i = 1;
                 while (it.hasNext()) {
                     Map.Entry pair = (Map.Entry) it.next();
-                    messages.add(new Message(false, i + "- " + pair.getKey() + ": " + pair.getValue()));
+                    messages.add(new Message(false, i + "- " + pair.getKey() + ": " +
+                            pair.getValue()));
                     i++;
                 }
                 /* now we need input from user to give the contact number,
                  * putting call as an expecting action */
-                HomeActivity.writeActionToSharedPreferences(context, "call", probableContacts);
+
+                markActionAsExpected(context, MYACTION,
+                        actionTypes.GetResultFromContactList.toString(), probableContacts);
         }
     }
 
@@ -149,6 +192,43 @@ public class Call {
     * 1. When only Call was mentioned and not the name, (needs to be marked as expecting input also)
     */
     public static void actionHandler(Context context, String message) {
+        /* get the subAction for Call */
+        String subAction = HomeActivity.readSubActionFromSharedPreferences(context);
+
+        /* **ALARM** if subAction was not inserted */
+        if (subAction == null) {
+            Log.e("callActionHandler", "No subAction found. should not happen. call decideAction.");
+            ActionDecider.performAction(context, message);
+            return;
+        }
+
+        if (subAction.equals(actionTypes.GetContact.toString())) {
+            handleGetContactAction(context, message);
+        } else if (subAction.equals(actionTypes.GetResultFromContactList.toString())) {
+            handleGetResultFromContactListAction(context, message);
+        } else {
+            /* place holder for adding other cases later on */
+            /* TODO: should we mark the actions as done */
+            /* marking this as done for now*/
+            markActionAsDone(context, MYACTION);
+        }
+    }
+
+    private static void handleGetContactAction(Context context, String message) {
+        // action object is not required for this.
+        try {
+            String name = extractName(message, callKeywords, "call");
+            LinkedHashMap<String, String> probableContacts = getProbableContacts((Activity) context,
+                    name);
+            interfacePerformCall(probableContacts, name, context);
+        } catch (NullPointerException npe) {
+            Log.e("callHandleGetContact", npe.getMessage());
+            markActionAsDone(context, MYACTION);
+            return;
+        }
+    }
+
+    private static void handleGetResultFromContactListAction(Context context, String message) {
         String jsonAction = HomeActivity.readJsonActionObjectFromSharedPreferences(context);
         ArrayList<Message> messages = HomeActivity.messages;
         if (jsonAction == null) {

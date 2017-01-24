@@ -91,6 +91,11 @@ public class ActionDecider {
                 return keywords[i];
             }
 
+            /* check if that exact keyword is the only word in message */
+            if (message.toLowerCase().equals(keywords[i])) {
+                return keywords[i];
+            }
+
             /* allow dots "." or "s" after keyword, as people generally tend to give "keyword..." as message */
             /* TODO */
         }

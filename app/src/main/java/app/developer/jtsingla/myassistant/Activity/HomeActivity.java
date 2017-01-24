@@ -39,6 +39,7 @@ public class HomeActivity extends AppCompatActivity {
 
     public final static String EXPECTED_RESPONSE = "expectedResponse";
     public final static String ACTION = "action";
+    public final static String SUBACTION = "subAction";
     public final static String[] ACTIONS = {
             "call", "reminder" // ... TODO: add as and when necessary
     };
@@ -83,6 +84,13 @@ public class HomeActivity extends AppCompatActivity {
         return action;
     }
 
+    public static String readSubActionFromSharedPreferences(Context context) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences(EXPECTED_RESPONSE,
+                                                                            context.MODE_PRIVATE);
+        String subAction = sharedPreferences.getString(SUBACTION, null);
+        return subAction;
+    }
+
     public static String readJsonActionObjectFromSharedPreferences(Context context) {
         SharedPreferences sharedPreferences = context.getSharedPreferences(EXPECTED_RESPONSE,
                                                                         context.MODE_PRIVATE);
@@ -91,11 +99,12 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     public static void writeActionToSharedPreferences(Context context, String action,
-                                                            Object object) {
+                                                            String subAction, Object object) {
         SharedPreferences sharedPreferences = context.getSharedPreferences(EXPECTED_RESPONSE,
                                                                             context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putString(ACTION, action);
+        editor.putString(SUBACTION, subAction);
         Gson gson = new Gson();
         String json = gson.toJson(object);
         editor.putString(ACTION_OBJECT, json);
@@ -140,11 +149,14 @@ public class HomeActivity extends AppCompatActivity {
     public void handleMessage(View v) {
         EditText editText = (EditText) findViewById(R.id.inputText);
 
-        messages.add(new Message(true, editText.getText().toString()));
+        /* if user entered only spaces plainly return */
+        if (editText.getText().toString().trim().equals("")) return;
+
+        messages.add(new Message(true, editText.getText().toString().trim()));
         String action = readActionFromSharedPreferences(this);
         if (action != null) {
             /* some class is expecting action, so this message should be delivered to that class */
-            handleAction(action, editText.getText().toString(), this);
+            handleAction(action, editText.getText().toString().trim(), this);
         } else {
             /* decide new action as no class is expecting action */
             ActionDecider.performAction(this, editText.getText().toString());
