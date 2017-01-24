@@ -113,6 +113,11 @@ public class Call {
     private static String lotOfResults = "Please be more specific. " +
             "There are a lot of results with ";
     private static String whomToCall = "Whom should I call?";
+    private static String[] invalidNames = {
+            "Please give a valid name.",
+            "That is something which I don't understand.",
+            //...
+    };
     private static int MAX_RESULTS = 10;
 
     /* tries to perform the call */
@@ -153,6 +158,7 @@ public class Call {
         switch (probableContacts.size()) {
             case 0: /* no results found */
                 messages.add(new Message(false, noContactsFound + ": " + contactName));
+                markActionAsDone(context, MYACTION);
                 break;
             case 1: /* only one result found */
                 messages.add(new Message(false, ActionDecider.generateRandomMessage(callResponseMessages)));
@@ -216,14 +222,17 @@ public class Call {
 
     private static void handleGetContactAction(Context context, String message) {
         // action object is not required for this.
+        ArrayList<Message> messages = HomeActivity.messages;
         try {
             String name = extractName(message, callKeywords, "call");
             LinkedHashMap<String, String> probableContacts = getProbableContacts((Activity) context,
                     name);
             interfacePerformCall(probableContacts, name, context);
         } catch (NullPointerException npe) {
+            messages.add(new Message(false, ActionDecider.generateRandomMessage(invalidNames)));
             Log.e("callHandleGetContact", npe.getMessage());
-            markActionAsDone(context, MYACTION);
+            /* do not mark action as done, as user will give valid name next time.*/
+            //markActionAsDone(context, MYACTION);
             return;
         }
     }

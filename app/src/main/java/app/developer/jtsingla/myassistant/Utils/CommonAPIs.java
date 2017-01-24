@@ -223,10 +223,16 @@ public class CommonAPIs {
 
     /* This API marks the action as done if calling action is same as action that was expected */
     public static void markActionAsDone(Context context, String callingAction) {
-        String expectedAction = HomeActivity.readActionFromSharedPreferences(context);
-        // only reset the action if it was call, should not interfere if action is something else.
-        if (expectedAction == callingAction) HomeActivity
-                .writeActionToSharedPreferences(context, null, null, null);
+        try {
+            String expectedAction = HomeActivity.readActionFromSharedPreferences(context);
+            // only reset the action if it was call, should not interfere if action is something else.
+            if (expectedAction.equals(callingAction)) HomeActivity
+                    .writeActionToSharedPreferences(context, null, null, null);
+        } catch (NullPointerException npe) {
+            /* null pointer exception will be thrown if no action was expected */
+            Log.e("markActionAsDone", npe.getMessage());
+            return;
+        }
     }
 
     public static void markActionAsExpected(Context context, String action, String subAction,
