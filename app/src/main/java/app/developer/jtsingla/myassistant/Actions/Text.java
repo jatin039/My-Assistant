@@ -1,16 +1,62 @@
 package app.developer.jtsingla.myassistant.Actions;
 
+import android.app.Activity;
 import android.content.Context;
+import android.util.Log;
+import android.util.Pair;
 
-import app.developer.jtsingla.myassistant.Utils.CommonAPIs;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
-import static app.developer.jtsingla.myassistant.Utils.CommonAPIs.isNegate;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import app.developer.jtsingla.myassistant.Activity.HomeActivity;
+import app.developer.jtsingla.myassistant.DTOs.TextDTO;
+import app.developer.jtsingla.myassistant.Decider.ActionDecider;
+import app.developer.jtsingla.myassistant.Utils.Message;
+
+import static app.developer.jtsingla.myassistant.Activity.HomeActivity.*;
+import static app.developer.jtsingla.myassistant.Utils.CommonAPIs.*;
 
 /**
  * Created by jssingla on 1/23/17.
  */
 
 public class Text {
+
+    private enum actionTypes {
+        /* when user said a name which brought many results (1-MAX_RESULTS)
+         * take input from user and set this action type. */
+        GetResultFromContactList("GetResultFromContactList"),
+        /* when user is yet to enter a name, just entered the keyword. */
+        GetContact("GetContact"),
+        /* when user is yet to enter what to text */
+        GetText("GetText");
+
+        private String actionType;
+
+        private actionTypes(String actionType) {
+            actionType = actionType;
+        }
+    }
+
+    private enum textMethod {
+        WHATSAPPALWAYS("Always use whatsapp?"),
+        MESSAGINGALWAYS("Always use messaging?"),
+        WHATSAPP("Use whatsapp?"),
+        MESSAGING("Use messaging?");
+
+        private String textMethod;
+
+        private textMethod(String s) {
+            textMethod = s;
+        }
+    }
+
     private static String[] textKeywords = {
         "message text to", // sounds stupid, but still...
         "text message to",
@@ -36,10 +82,342 @@ public class Text {
         "whatsapp"
     };
 
+    /* This string array will give the possible prepositions which can be present
+       in a string while saying a text.
+       eg. Send a text that ....
+     */
+    private static String[] textPrepositions = {
+            "to",
+            "that",
+            //...
+    };
+
+    private static String[] textDividers = {
+            "that"
+    };
+
+    private static String[] textResponseMessages = {
+            "Ok",
+            "Trying to send the text",
+            "Will do that just now",
+            "At your service, always"
+    };
+
+    private static final int MAX_RESULTS = 10;
+    private static String whomToText = "Whom should I text?";
+    private static String whatToText = "What is the message?";
+    private static String MYACTION = "text";
+    private static String sendingText = "Sending a text to %s that %s";
 
     public static void attemptSendText(Context context, String message) {
         if (isNegate(message)) {
             return; // if user tells not to make a text. when someone is trying to test the app. :D
         }
+        ArrayList<Message> messages = HomeActivity.messages;
+        Pair<String, String> nameAndText = extractNameAndText(message, textKeywords,
+                                            (Activity)context);
+        String contactName = nameAndText.first;
+        String text = nameAndText.second;
+        TextDTO textDTO = new TextDTO();
+        textDTO.setText(text);
+        writeTextDTOToSharedPreferences(context, textDTO);
+        if (contactName == null) {
+            /* only keyword was present in the message, no name */
+            /* ask user for further input and mark action as expected */
+            messages.add(new Message(false, whomToText));
+            markActionAsExpected(context, MYACTION, Text.actionTypes.GetContact.toString(),
+                    null/* user is expected to enter a name, so no probablecontacts are needed.*/);
+            return;
+        }
+        /* save text to shared Prefs */
+
+        LinkedHashMap<String, String> probableContacts =
+                getProbableContacts((Activity)context, contactName);
+
+        interfacePerformText(probableContacts, contactName, context);
+    }
+
+    /* action handler for specific action
+   * TODO: features to be added,
+   * 1. When only Text was mentioned and not the name, (needs to be marked as expecting input also)
+   */
+    public static void actionHandler(Context context, String message) {
+        /* get the subAction for text */
+        String subAction = HomeActivity.readSubActionFromSharedPreferences(context);
+
+        /* **ALARM** if subAction was not inserted */
+        if (subAction == null) {
+            Log.e("textActionHandler", "No subAction found. should not happen. call decideAction.");
+            ActionDecider.performAction(context, message);
+            return;
+        }
+
+        if (subAction.equals(Text.actionTypes.GetContact.toString())) {
+            handleGetContactAction(context, message);
+        } else if (subAction.equals(Text.actionTypes.GetResultFromContactList.toString())) {
+            handleGetResultFromContactListAction(context, message);
+        } else if (subAction.equals(actionTypes.GetText.toString())) {
+            handleGetTextAction(context, message);
+        } else {
+            /* place holder for adding other cases later on */
+            /* TODO: should we mark the actions as done */
+            /* marking this as done for now*/
+            markActionAsDone(context, MYACTION);
+        }
+    }
+
+    private static void handleGetContactAction(Context context, String message) {
+        // action object is not required for this.
+        ArrayList<Message> messages = HomeActivity.messages;
+        try {
+            Pair<String, String> nameAndText = extractNameAndText(message, textKeywords,
+                    (Activity)context);
+            String name = nameAndText.first;
+            LinkedHashMap<String, String> probableContacts = getProbableContacts((Activity) context,
+                    name);
+            interfacePerformText(probableContacts, name, context);
+        } catch (NullPointerException npe) {
+            messages.add(new Message(false, ActionDecider.generateRandomMessage(invalidNames)));
+            Log.e("textHandleGetContact", npe.getMessage());
+            /* do not mark action as done, as user will give valid name next time.*/
+            //markActionAsDone(context, MYACTION);
+            return;
+        }
+    }
+
+    private static void handleGetTextAction(Context context, String message) {
+        /* take all of message as text to be sent */
+        TextDTO textDTO = readTextDTOFromSharedPreferences(context);
+        textDTO.setText(message);
+        writeTextDTOToSharedPreferences(context, textDTO);
+        performText(context, message);
+        markActionAsDone(context, MYACTION);
+    }
+
+    private static void handleGetResultFromContactListAction(Context context, String message) {
+        String jsonAction = HomeActivity.readJsonActionObjectFromSharedPreferences(context);
+        ArrayList<Message> messages = HomeActivity.messages;
+        if (jsonAction == null) {
+            /* if object required is not there */
+            // TODO: is this possible? need use cases for this.
+        }
+        LinkedHashMap<String, String> probableContacts;
+        Gson gson = new Gson();
+        Type type = new TypeToken<LinkedHashMap<String, String>>() {}.getType();
+        probableContacts = gson.fromJson(jsonAction, type);
+        /* for now assuming message to be only a number, TODO: think of other use cases for call
+         * maybe user entered name of contact, do a exact match search then **MAYBE** */
+        try {
+            int idx = convertStringResponseToInt(message);
+            if (idx == 0) idx = Integer.parseInt(message);
+            if (idx > probableContacts.size() || idx < 1) {
+                messages.add(new Message(false, "Please select a number from 1 - " + probableContacts.size()));
+                /* still expect a action from user as he entered invalid number,
+                   may want to enter again */
+                return;
+            }
+            Iterator it = probableContacts.entrySet().iterator();
+            int i = 1;
+            while (it.hasNext()) {
+                if (i == idx) {
+                    Map.Entry<String, String> pair = (Map.Entry)it.next();
+                    Pair<String, String> contact = new Pair<>(pair.getKey(), pair.getValue());
+                    performText(context, contact);
+                    markActionAsDone(context, MYACTION);
+                    break;
+                }
+                it.next();
+                i++;
+            }
+        } catch (NumberFormatException nfe) {
+            Log.e(MYACTION, nfe.getMessage());
+            markActionAsDone(context, MYACTION);
+            ActionDecider.performAction(context, message);
+        }
+    }
+
+
+    public static void interfacePerformText(LinkedHashMap<String, String> probableContacts,
+                                     String contactName, Context context) {
+        ArrayList<Message> messages = HomeActivity.messages;
+        if (probableContacts == null) {
+            /* no request read permission, user will have to make new request. */
+            return;
+        }
+
+        /* TODO : handle cases:
+         * Case 1: when only 1 result
+         * Case 2: when no result,
+         *          ask the user to select a contact, and map that string to selected contact
+         *          for next time onwards
+         * Case 3: multiple results */
+        switch (probableContacts.size()) {
+            case 0: /* no results found */
+                messages.add(new Message(false, noContactsFound + ": " + contactName));
+                markActionAsDone(context, MYACTION);
+                break;
+            case 1: /* only one result found */
+                messages.add(new Message(false, ActionDecider.generateRandomMessage(textResponseMessages)));
+                Map.Entry<String, String> entry = probableContacts.entrySet().iterator().next();
+                Pair<String, String> contact = new Pair<>(entry.getKey(), entry.getValue());
+                performText(context, contact);
+                markActionAsDone(context, MYACTION);
+                break;
+            default: /* multiple results */
+                /* if there are a lot of results more than MAX_RESULTS,
+                 * we ask user to be more specific.
+                 * TODO?? We may add action expected for Text but for now not adding that. */
+                if (probableContacts.size() > MAX_RESULTS) {
+                    messages.add(new Message(false, lotOfResults + ": " + contactName));
+                    return;
+                }
+                Iterator it = probableContacts.entrySet().iterator();
+                messages.add(new Message(false, "I have found " + probableContacts.size() +
+                        " results. Please choose a result no. to select a contact."));
+                int i = 1;
+                while (it.hasNext()) {
+                    Map.Entry pair = (Map.Entry) it.next();
+                    messages.add(new Message(false, i + "- " + pair.getKey() + ": " +
+                            pair.getValue()));
+                    i++;
+                }
+                /* now we need input from user to give the contact number,
+                 * putting call as an expecting action */
+
+                markActionAsExpected(context, MYACTION,
+                        Text.actionTypes.GetResultFromContactList.toString(), probableContacts);
+        }
+    }
+
+    /* This API extracts contact name and text from message
+    * assumes message to be in this format :
+    * message keyword + preposition/or not + "contact" + preposition + "text"
+    * TODO: not handling below case as of now
+    * message keyword + preposition + "text" + preposition + "contact"*/
+
+    private static Pair<String /*name*/, String /*text*/> extractNameAndText(String message,
+                                                    String[] keywords, Activity activity) {
+        String name, text;
+
+        message = message.toLowerCase();
+        String strippedMessage = null;
+        for (String a : keywords) {
+            if (message.contains(a)) {
+                strippedMessage = message.replaceAll(a, "");
+                break;
+            }
+        }
+        strippedMessage.trim();
+        final String PREP = "prepositon_found";
+        // split message on prepositions
+        /* initially mark this as stripped message */
+        String[] splitMessageOnPrepositions = {strippedMessage};
+        for (String a : textPrepositions) {
+            if (strippedMessage.contains(a)) {
+                strippedMessage = strippedMessage.replaceFirst(a, PREP);
+                splitMessageOnPrepositions = strippedMessage.split(PREP);
+                break;
+            }
+        }
+
+
+        switch (splitMessageOnPrepositions.length) {
+            case 1:
+                /* return null if empty string */
+                if (splitMessageOnPrepositions[0].equals("")) {
+                    return new Pair<>(null, null);
+                }
+                /* either name or message, LETS Find out */
+                LinkedHashMap<String, String> probableContacts = getProbableContacts(activity,
+                        splitMessageOnPrepositions[0]);
+                if (probableContacts.size() != 0) {
+                    /* Woaah, its a contact */
+                    name = splitMessageOnPrepositions[0];
+                    text = null;
+                } else {
+                    /* Ohh, that means it's a text */
+                    text = splitMessageOnPrepositions[0];
+                    name = null;
+                }
+                return new Pair<>(name, text);
+            case 2:
+                /* both name and message, assign blindly?
+                * TODO: may need to check when we handle the cases
+                * TODO: where text may come first then message */
+                name = splitMessageOnPrepositions[0];
+                text = splitMessageOnPrepositions[1];
+                return new Pair<>(name, text);
+            default:
+                /* not possible unless empty string i.e 0 length*/
+                return new Pair<>(null, null);
+        }
+    }
+
+    /* this API returns the method to be used if it is selected by the user, otherwise it
+     * asks the user for specifying the method and set the action as expected.
+     */
+    private static String whichMethod(Context context) {
+        String method = readTextMethodFromSharedPreferences(context);
+        if (method == null) {
+            /* user has not specified the method any-time */
+            /* ask the user to specify the action */
+        }
+        /* otherwise return the method which was selected by the user */
+        return method;
+    }
+
+    private static void performText(Context context, String text) {
+        /* Here it will come if we got message, but contact may or may not have been specified */
+        TextDTO textDTO = readTextDTOFromSharedPreferences(context);
+
+        if (textDTO == null) {
+            textDTO = new TextDTO();
+        }
+
+        if (textDTO.isDummyContact()) {
+            /* save text to sharedPreferences */
+            textDTO.setText(text);
+            writeTextDTOToSharedPreferences(context, textDTO);
+            /* get contact from user */
+            markActionAsExpected(context, MYACTION, actionTypes.GetText.GetContact.toString(),
+                    null /* no probable contacts are needed */);
+            return;
+        }
+
+        /* if we have both text and contact */
+        actuallySendText(context, textDTO.getContact(), text);
+    }
+
+    private static void performText(Context context, Pair<String, String> contact) {
+        /* Here it will come if we got the contact, but message either is not specified yet
+         * or we need to find from shared prefs.*/
+        TextDTO textDTO = readTextDTOFromSharedPreferences(context);
+
+        if (textDTO == null) {
+            textDTO = new TextDTO();
+        }
+
+        if (textDTO.isDummyText()) {
+            /* save the contact to shared preferences */
+            textDTO.setContact(contact);
+            writeTextDTOToSharedPreferences(context, textDTO);
+            /* Text is not specified, ask for text from user */
+            markActionAsExpected(context, MYACTION, actionTypes.GetText.toString(),
+                    null /* no probable contacts needed as contact is already specified
+                            and we will write that contact to textDTO*/);
+            return;
+        }
+
+        /* if we have both text and contact */
+        actuallySendText(context, contact, textDTO.getText());
+    }
+
+    private static void actuallySendText(Context context, Pair<String, String> contact,
+                                         String text) {
+        String sendingMessage = String.format(sendingText, contact.first , text);
+        messages.add(new Message(false, sendingMessage));
+
+        /* mark textDTO as dummy for subsequent requests */
+        writeTextDTOToSharedPreferences(context, null);
     }
 }

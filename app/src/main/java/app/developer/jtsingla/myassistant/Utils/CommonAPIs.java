@@ -15,7 +15,6 @@ import java.util.LinkedHashMap;
 
 import app.developer.jtsingla.myassistant.Activity.HomeActivity;
 
-import static app.developer.jtsingla.myassistant.Utils.CommonAPIs.parseContacts;
 
 /**
  * Created by jssingla on 1/23/17.
@@ -43,6 +42,16 @@ public class CommonAPIs {
         "girl friend",
         "friend",
         "good"
+    };
+
+    public static String noContactsFound = "Didn't find any contact with name";
+    public static String lotOfResults = "Please be more specific. " +
+            "There are a lot of results with ";
+
+    public static String[] invalidNames = {
+            "Please give a valid name.",
+            "That is something which I don't understand.",
+            //...
     };
 
     /* this api will return whether the message contains
@@ -94,21 +103,22 @@ public class CommonAPIs {
       * 3. Keyword you want to split message on,
       *    this will vary depending on action i.e call, text.. eg. "call", "text"
       * */
+    /* This API is no longer needed to be common
     public static String extractName(String message, String[] keywords,
                                      String action) throws ArrayIndexOutOfBoundsException {
         try {
-            /* logic to retrieve name from the message */
-            /* to extract the message, we will replace the message to standard format
+            *//* logic to retrieve name from the message *//*
+            *//* to extract the message, we will replace the message to standard format
             *  i.e "Call Someone" from "Make a call to Someone"
             *  i.e "Text Someone" from "Make a text to Someone"
             *
-            *  we will replace common known strings to this format and then proceed*/
+            *  we will replace common known strings to this format and then proceed*//*
             message = replaceStringWithKeyword(keywords, action, message);
 
-            /* trim the message of all trimmable words */
+            *//* trim the message of all trimmable words *//*
             message = trimMessageForContact(message);
 
-            /* TODO: as of now expecting the name to be last in the sentence, not handling name first */
+            *//* TODO: as of now expecting the name to be last in the sentence, not handling name first *//*
             String[] splitMessage = message.split(action);
             return splitMessage[splitMessage.length-1].trim();
         } catch (ArrayIndexOutOfBoundsException oobe) {
@@ -116,7 +126,7 @@ public class CommonAPIs {
                     "Will ask user for input. will mark action as expected. " + oobe.getMessage());
             return null;
         }
-    }
+    }*/
 
     /* this API will return list of probable contacts if you have contact read permission
      * otherwise returns null */
@@ -146,7 +156,7 @@ public class CommonAPIs {
      * this API should only be called if you have read contacts permission from user.
      * takes contact name and
      * returns linked hashmap of probable contacts matching with that name */
-    public static LinkedHashMap<String, String> parseContacts(Activity activity, String contactName) {
+    private static LinkedHashMap<String, String> parseContacts(Activity activity, String contactName) {
         Cursor phones = activity.getContentResolver().query(ContactsContract
                 .CommonDataKinds.Phone.CONTENT_URI, null,null,null, null);
         LinkedHashMap<String, String> probableContacts = new LinkedHashMap<>();

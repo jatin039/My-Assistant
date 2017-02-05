@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import android.Manifest;
 
 import app.developer.jtsingla.myassistant.Actions.Call;
+import app.developer.jtsingla.myassistant.Actions.Text;
+import app.developer.jtsingla.myassistant.DTOs.TextDTO;
 import app.developer.jtsingla.myassistant.Decider.ActionDecider;
 import app.developer.jtsingla.myassistant.Utils.ListAdapter;
 import app.developer.jtsingla.myassistant.Utils.Message;
@@ -40,6 +42,8 @@ public class HomeActivity extends AppCompatActivity {
     public final static String EXPECTED_RESPONSE = "expectedResponse";
     public final static String ACTION = "action";
     public final static String SUBACTION = "subAction";
+    public final static String TEXTMETHOD = "textMethod";
+    public final static String TEXTDTO = "textDTO";
     public final static String[] ACTIONS = {
             "call", "reminder" // ... TODO: add as and when necessary
     };
@@ -75,6 +79,27 @@ public class HomeActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    public static TextDTO readTextDTOFromSharedPreferences(Context context) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences(EXPECTED_RESPONSE,
+                                                                        context.MODE_PRIVATE);
+        String text = sharedPreferences.getString(TEXTDTO, null);
+        TextDTO textDTO = new TextDTO();
+        Gson gson = new Gson();
+        Type type = new TypeToken<TextDTO>() {}.getType();
+        textDTO = gson.fromJson(text, type);
+        return textDTO;
+    }
+
+    public static void writeTextDTOToSharedPreferences(Context context, TextDTO textDTO) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences(EXPECTED_RESPONSE,
+                                                                        context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        Gson gson = new Gson();
+        String json = gson.toJson(textDTO);
+        editor.putString(TEXTDTO, json);
+        editor.commit();
     }
 
     public static String readActionFromSharedPreferences(Context context) {
@@ -133,6 +158,23 @@ public class HomeActivity extends AppCompatActivity {
         editor.commit();
     }
 
+    /* return text method if specified by user
+     * i.e whatsapp always?
+     *    message always! */
+    public static String readTextMethodFromSharedPreferences(Context context) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences(EXPECTED_RESPONSE,
+                                                                        context.MODE_PRIVATE);
+        return sharedPreferences.getString(TEXTMETHOD, null);
+    }
+
+    public static void writeTextMethodToSharedPreferences(Context context, String textMethod) {
+        SharedPreferences sharedPreferences = context.getSharedPreferences(EXPECTED_RESPONSE,
+                context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString(TEXTMETHOD, textMethod);
+        editor.commit();
+    }
+
     public void displayMessages() {
         ListAdapter adapter = new ListAdapter(this, messages);
         ListView listView = (ListView) findViewById(R.id.message_list);
@@ -172,6 +214,9 @@ public class HomeActivity extends AppCompatActivity {
                 //call action handler for call
                 Call.actionHandler(context, message);
                 break;
+            case "text":
+                //call action handler for text
+                Text.actionHandler(context, message);
             case "reminder":
                 //call action handler for reminder
                 break;
@@ -216,7 +261,8 @@ public class HomeActivity extends AppCompatActivity {
                         })
                         .show();
             } else {
-                ActivityCompat.requestPermissions(activity, PERMISSIONS_CONTACT, REQUEST_CONTACTS_READ);
+                ActivityCompat.requestPermissions(activity, PERMISSIONS_CONTACT,
+                        REQUEST_CONTACTS_READ);
             }
         }
 

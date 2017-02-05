@@ -4,9 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.util.Pair;
 
@@ -14,7 +12,6 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
-import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -24,13 +21,7 @@ import app.developer.jtsingla.myassistant.Decider.ActionDecider;
 import app.developer.jtsingla.myassistant.Activity.HomeActivity;
 import app.developer.jtsingla.myassistant.Utils.Message;
 
-import static app.developer.jtsingla.myassistant.Utils.CommonAPIs.convertStringResponseToInt;
-import static app.developer.jtsingla.myassistant.Utils.CommonAPIs.extractName;
-import static app.developer.jtsingla.myassistant.Utils.CommonAPIs.getProbableContacts;
-import static app.developer.jtsingla.myassistant.Utils.CommonAPIs.isNegate;
-import static app.developer.jtsingla.myassistant.Utils.CommonAPIs.isPermissionGranted;
-import static app.developer.jtsingla.myassistant.Utils.CommonAPIs.markActionAsDone;
-import static app.developer.jtsingla.myassistant.Utils.CommonAPIs.markActionAsExpected;
+import static app.developer.jtsingla.myassistant.Utils.CommonAPIs.*;
 
 /**
  * Created by jssingla on 1/16/17.
@@ -108,16 +99,8 @@ public class Call {
         }
     }
 
-    private static String noContactsFound = "Didn't find any contact with name";
     private static String makingCall = "Making a call to ";
-    private static String lotOfResults = "Please be more specific. " +
-            "There are a lot of results with ";
     private static String whomToCall = "Whom should I call?";
-    private static String[] invalidNames = {
-            "Please give a valid name.",
-            "That is something which I don't understand.",
-            //...
-    };
     private static int MAX_RESULTS = 10;
 
     /* tries to perform the call */
@@ -125,7 +108,7 @@ public class Call {
         if (isNegate(message)) return; /* return if user is asking not to make a call */
         ArrayList<Message> messages = HomeActivity.messages;
         /* check if we have permissions to Contacts */
-        String name = extractName(message, callKeywords, "call");
+        String name = extractCallName(message, callKeywords, MYACTION);
         if (name == null) {
             /* only keyword was present in the message, no name */
             /* ask user for further input and mark action as expected */
@@ -176,7 +159,7 @@ public class Call {
                     return;
                 }
                 Iterator it = probableContacts.entrySet().iterator();
-                messages.add(new Message(false, "We have found " + probableContacts.size() +
+                messages.add(new Message(false, "I have found " + probableContacts.size() +
                         " results. Please choose a result no. to select a contact."));
                 int i = 1;
                 while (it.hasNext()) {
@@ -224,7 +207,7 @@ public class Call {
         // action object is not required for this.
         ArrayList<Message> messages = HomeActivity.messages;
         try {
-            String name = extractName(message, callKeywords, "call");
+            String name = extractCallName(message, callKeywords, MYACTION);
             LinkedHashMap<String, String> probableContacts = getProbableContacts((Activity) context,
                     name);
             interfacePerformCall(probableContacts, name, context);
@@ -234,6 +217,33 @@ public class Call {
             /* do not mark action as done, as user will give valid name next time.*/
             //markActionAsDone(context, MYACTION);
             return;
+        }
+    }
+
+    /* This API will expect the incoming message to be of the form
+        ***** "Call keyword + name" | "name + Call keyword" ******
+        will return the name.
+     */
+    private static String extractCallName(String message, String[] keywords,
+                                     String action) throws ArrayIndexOutOfBoundsException {
+        try {
+            /* logic to retrieve name from the message */
+            /* to extract the message, we will replace the message to standard format
+            *  i.e "Call Someone" from "Make a call to Someone"
+            *
+            *  we will replace common known strings to this format and then proceed*/
+            message = replaceStringWithKeyword(keywords, action, message);
+
+            /* trim the message of all trimmable words */
+            message = trimMessageForContact(message);
+
+            /* TODO: as of now expecting the name to be last in the sentence, not handling name first */
+            String[] splitMessage = message.split(action);
+            return splitMessage[splitMessage.length-1].trim();
+        } catch (ArrayIndexOutOfBoundsException oobe) {
+            Log.e("extractName", "Only keyword was present in message. " +
+                    "Will ask user for input. will mark action as expected. " + oobe.getMessage());
+            return null;
         }
     }
 

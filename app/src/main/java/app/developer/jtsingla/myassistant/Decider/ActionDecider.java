@@ -1,10 +1,12 @@
 package app.developer.jtsingla.myassistant.Decider;
 
 import android.content.Context;
+import android.content.Intent;
 
 import java.util.ArrayList;
 
 import app.developer.jtsingla.myassistant.Actions.Call;
+import app.developer.jtsingla.myassistant.Actions.Text;
 import app.developer.jtsingla.myassistant.Activity.HomeActivity;
 import app.developer.jtsingla.myassistant.Utils.Message;
 
@@ -45,7 +47,7 @@ public class ActionDecider {
             case "message": //fallthrough
             case "text": //fallthrough
             case "whatsapp":
-                messages.add(new Message(false, "Trying to send the message")); // test
+                Text.attemptSendText(context, message);
                 break;
             case "camera":
                 messages.add(new Message(false, "Trying to open the camera")); // test
@@ -64,7 +66,7 @@ public class ActionDecider {
     public static void performAction(Context context, String message) {
         /* ToDo: need to figure out the cases where both keywords might be there,
                   * May need to limit such scenarios or handle appropriately */
-        String match = parseMessageForStringArray(message, actionsKeywords);
+        String match = parseMessageForStringArray(message.toLowerCase(), actionsKeywords);
         if (match == null) {
             /* if none of the patterns matched, generate random message and send to user*/
             ArrayList<Message> messages = HomeActivity.messages;
@@ -75,30 +77,47 @@ public class ActionDecider {
     }
 
     public static String parseMessageForStringArray(String message, String[] keywords) {
-        for (int i = 0; i < keywords.length; i++) {
-            if (message.toLowerCase().contains(" " + keywords[i] + " ")) { /* exact match */
-                return keywords[i];
+
+        String match = null;
+        Integer minIndexMatch = Integer.MAX_VALUE;
+
+        /* get the earliest occuring keyword in message, need this to get
+           the appropriate action in case of multiple keywords
+         */
+        for (String keyword : keywords) {
+            Integer indexMatch = contains(message, keyword);
+            if (indexMatch < minIndexMatch) {
+                minIndexMatch = indexMatch;
+                match = keyword;
             }
+        }
+        return match;
+    }
+
+    private static Integer contains(String message, String keyword) {
+        if (message.contains(" " + keyword + " ")) { /* exact match */
+            return message.indexOf(" " + keyword + " ");
+        }
             /* search for "keyword " if only its a first word, avoiding matches like "*keyword " */
-            if (message.toLowerCase().contains(keywords[i] + " ") &&
-                    message.toLowerCase().startsWith(keywords[i])) {
-                return keywords[i];
-            }
+        if (message.contains(keyword + " ") &&
+                message.startsWith(keyword)) {
+            return message.indexOf(keyword + " ");
+        }
 
             /* search for " keyword" if only its a last word, avoiding matches like " keyword*" */
-            if (message.toLowerCase().contains(" " + keywords[i]) &&
-                    message.toLowerCase().endsWith(keywords[i])) {
-                return keywords[i];
-            }
+        if (message.contains(" " + keyword) &&
+                message.endsWith(keyword)) {
+            return message.indexOf(" " + keyword);
+        }
 
             /* check if that exact keyword is the only word in message */
-            if (message.toLowerCase().equals(keywords[i])) {
-                return keywords[i];
-            }
+        if (message.equals(keyword)) {
+            return message.indexOf(keyword); // i.e 0 in this case always
+        }
 
             /* allow dots "." or "s" after keyword, as people generally tend to give "keyword..." as message */
             /* TODO */
-        }
-        return null;
+        /* return MAX value if value we are looking for is not in message */
+        return Integer.MAX_VALUE;
     }
 }
