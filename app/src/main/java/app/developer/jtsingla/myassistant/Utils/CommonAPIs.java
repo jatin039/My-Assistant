@@ -10,8 +10,11 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 
 import app.developer.jtsingla.myassistant.Activity.HomeActivity;
 
@@ -253,5 +256,18 @@ public class CommonAPIs {
     public static boolean isPermissionGranted(Activity activity, @NonNull String permission) {
         return (ActivityCompat.checkSelfPermission(activity, permission)
                 == PackageManager.PERMISSION_GRANTED);
+    }
+
+    public static String[] makeKeywords(String[] prefixes, String[] suffixes, String[] keywords) {
+        List<String> returnKeywords = new ArrayList<>();
+        for (String prefix : prefixes) {
+            for (String suffix: suffixes) {
+                for (String keyword : keywords) {
+                    returnKeywords.add(prefix + " " + keyword + " " + suffix);
+                }
+            }
+        }
+        String [] returnKeywordsArray = new String[returnKeywords.size()];
+        return returnKeywords.toArray(returnKeywordsArray);
     }
 }

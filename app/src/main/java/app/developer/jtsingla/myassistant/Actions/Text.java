@@ -57,29 +57,20 @@ public class Text {
         }
     }
 
+    private static String[] textKeywordCommonPrefixes = {
+            "send a", "send",
+            "make a", "make",
+            "a",
+            "", // no prefix
+    };
+
+    private static String[] textKeywordCommonSuffixes = {
+            "to", "that",
+            "" // none
+    };
+
     private static String[] textKeywords = {
-        "message text to", // sounds stupid, but still...
-        "text message to",
-        "make a text message to",
-        "make a text to",
-        "make a message to",
-        "make a message text to", //sounds stupid but people may say.
-        "make a whatsapp message to",
-        "make a whatsapp text to",
-        "make a whatsapp to",
-        "make text to",
-        "make message to",
-        "make text message to",
-        "make message text to", // sounds stupid but still.
-        "make whatsapp message to",
-        "make whatsapp text to",
-        "make whatsapp to",
-        "whatsapp to",
-        "message to",
-        "text to",
-        "message",
-        "text",
-        "whatsapp"
+        "text message", "whatsapp message", "whatsapp text", "text" , "message", "whatsapp"
     };
 
     /* This string array will give the possible prepositions which can be present
@@ -96,25 +87,27 @@ public class Text {
             "that"
     };
 
-    private static String[] textResponseMessages = {
+   /* Not using this now.
+   private static String[] textResponseMessages = {
             "Ok",
             "Trying to send the text",
             "Will do that just now",
             "At your service, always"
-    };
+    };*/
 
     private static final int MAX_RESULTS = 10;
     private static String whomToText = "Whom should I text?";
     private static String whatToText = "What is the message?";
     private static String MYACTION = "text";
-    private static String sendingText = "Sending a text to %s that %s";
+    private static String sendingText = "Sending a text to %s : %s";
 
     public static void attemptSendText(Context context, String message) {
         if (isNegate(message)) {
             return; // if user tells not to make a text. when someone is trying to test the app. :D
         }
         ArrayList<Message> messages = HomeActivity.messages;
-        Pair<String, String> nameAndText = extractNameAndText(message, textKeywords,
+        String[] keywords = makeKeywords(textKeywordCommonPrefixes, textKeywordCommonSuffixes, textKeywords);
+        Pair<String, String> nameAndText = extractNameAndText(message, keywords,
                                             (Activity)context);
         String contactName = nameAndText.first;
         String text = nameAndText.second;
@@ -223,7 +216,6 @@ public class Text {
                     Map.Entry<String, String> pair = (Map.Entry)it.next();
                     Pair<String, String> contact = new Pair<>(pair.getKey(), pair.getValue());
                     performText(context, contact);
-                    markActionAsDone(context, MYACTION);
                     break;
                 }
                 it.next();
@@ -257,11 +249,9 @@ public class Text {
                 markActionAsDone(context, MYACTION);
                 break;
             case 1: /* only one result found */
-                messages.add(new Message(false, ActionDecider.generateRandomMessage(textResponseMessages)));
                 Map.Entry<String, String> entry = probableContacts.entrySet().iterator().next();
                 Pair<String, String> contact = new Pair<>(entry.getKey(), entry.getValue());
                 performText(context, contact);
-                markActionAsDone(context, MYACTION);
                 break;
             default: /* multiple results */
                 /* if there are a lot of results more than MAX_RESULTS,
@@ -402,6 +392,7 @@ public class Text {
             textDTO.setContact(contact);
             writeTextDTOToSharedPreferences(context, textDTO);
             /* Text is not specified, ask for text from user */
+            messages.add(new Message(false, whatToText));
             markActionAsExpected(context, MYACTION, actionTypes.GetText.toString(),
                     null /* no probable contacts needed as contact is already specified
                             and we will write that contact to textDTO*/);
@@ -419,5 +410,6 @@ public class Text {
 
         /* mark textDTO as dummy for subsequent requests */
         writeTextDTOToSharedPreferences(context, null);
+        markActionAsDone(context, MYACTION);
     }
 }

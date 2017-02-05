@@ -71,12 +71,13 @@ public class Call {
         "Got it."
     };
 
+    /* Not using this now.
     private static String[] callResponseMessages = {
          "Ok",
          "Trying to make the call",
          "Will do that just now",
          "At your service, always"
-    };
+    };*/
 
     /* for handling actions */
     private static final String MYACTION = "call";
@@ -144,11 +145,9 @@ public class Call {
                 markActionAsDone(context, MYACTION);
                 break;
             case 1: /* only one result found */
-                messages.add(new Message(false, ActionDecider.generateRandomMessage(callResponseMessages)));
                 Map.Entry<String, String> entry = probableContacts.entrySet().iterator().next();
                 Pair<String, String> contact = new Pair<>(entry.getKey(), entry.getValue());
                 performCall(context, contact);
-                markActionAsDone(context, MYACTION);
                 break;
             default: /* multiple results */
                 /* if there are a lot of results more than MAX_RESULTS,
@@ -276,7 +275,6 @@ public class Call {
                     Map.Entry<String, String> pair = (Map.Entry)it.next();
                     Pair<String, String> contact = new Pair<>(pair.getKey(), pair.getValue());
                     performCall(context, contact);
-                    markActionAsDone(context, MYACTION);
                     break;
                 }
                 it.next();
@@ -302,6 +300,7 @@ public class Call {
         if (isMakeCallPermission((Activity)context)) {
             messages.add(new Message(false, makingCall + contact.first));
             context.startActivity(intent);
+            markActionAsDone(context, MYACTION);
         } else {
             messages.add(new Message(false, "Please give permission to call."));
             /* request permission again */
