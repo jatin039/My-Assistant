@@ -18,6 +18,8 @@ import java.util.List;
 
 import app.developer.jtsingla.myassistant.Activity.HomeActivity;
 
+import static app.developer.jtsingla.myassistant.Activity.HomeActivity.Permissions.checkContactReadPermission;
+
 
 /**
  * Created by jssingla on 1/23/17.
@@ -142,7 +144,7 @@ public class CommonAPIs {
             Log.i(HomeActivity.Permissions.PERMISSION_TAG, "Contact read permissions has NOT " +
                     "been granted. Requesting permissions.");
             // request permission again.
-            HomeActivity.Permissions.requestContactsReadPermission(activity);
+            checkContactReadPermission(activity);
             /* FIXME: we can't wait for user to give the access to contacts,
              * one way to fix this will be to put this particular request to callStack
              * then after gaining the access, from onRequestPermissionResults, handle this

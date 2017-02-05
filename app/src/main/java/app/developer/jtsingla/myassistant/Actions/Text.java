@@ -196,7 +196,6 @@ public class Text {
         textDTO.setText(message);
         writeTextDTOToSharedPreferences(context, textDTO);
         performText(context, message);
-        markActionAsDone(context, MYACTION);
     }
 
     private static void handleGetResultFromContactListAction(Context context, String message) {

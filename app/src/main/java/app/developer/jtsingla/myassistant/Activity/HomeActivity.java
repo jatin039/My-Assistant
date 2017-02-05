@@ -244,7 +244,7 @@ public class HomeActivity extends AppCompatActivity {
 
         public static final String PERMISSION_TAG = "permissions_tag";
 
-        public static void requestContactsReadPermission(final Activity activity) {
+        private static void requestContactsReadPermission(final Activity activity) {
             if (ActivityCompat.shouldShowRequestPermissionRationale(activity,
                     Manifest.permission.READ_CONTACTS)) {
                 View v = activity.findViewById(R.id.edit_bar);
@@ -268,7 +268,7 @@ public class HomeActivity extends AppCompatActivity {
             }
         }
 
-        public static void requestSendSMSPermission(final Activity activity) {
+        private static void requestSendSMSPermission(final Activity activity) {
             if (ActivityCompat.shouldShowRequestPermissionRationale(activity,
                     Manifest.permission.SEND_SMS)) {
                 View v = activity.findViewById(R.id.edit_bar);
@@ -291,7 +291,7 @@ public class HomeActivity extends AppCompatActivity {
             }
         }
 
-        public static void requestMakeCallPermission(final Activity activity) {
+        private static void requestMakeCallPermission(final Activity activity) {
             if (ActivityCompat.shouldShowRequestPermissionRationale(activity,
                     Manifest.permission.CALL_PHONE)) {
                 View v = activity.findViewById(R.id.edit_bar);
