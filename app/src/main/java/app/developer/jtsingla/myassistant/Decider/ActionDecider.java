@@ -85,7 +85,7 @@ public class ActionDecider {
            the appropriate action in case of multiple keywords
          */
         for (String keyword : keywords) {
-            Integer indexMatch = contains(message, keyword);
+            Integer indexMatch = getKeywordIndex(message, keyword);
             if (indexMatch < minIndexMatch) {
                 minIndexMatch = indexMatch;
                 match = keyword;
@@ -94,7 +94,7 @@ public class ActionDecider {
         return match;
     }
 
-    private static Integer contains(String message, String keyword) {
+    private static Integer getKeywordIndex(String message, String keyword) {
         if (message.contains(" " + keyword + " ")) { /* exact match */
             return message.indexOf(" " + keyword + " ");
         }

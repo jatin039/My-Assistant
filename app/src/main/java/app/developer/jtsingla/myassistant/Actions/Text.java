@@ -300,7 +300,7 @@ public class Text {
         String name, text;
 
         message = message.toLowerCase();
-        String strippedMessage = null;
+        String strippedMessage = message;
         for (String a : keywords) {
             if (message.contains(a)) {
                 strippedMessage = message.replaceAll(a, "");
