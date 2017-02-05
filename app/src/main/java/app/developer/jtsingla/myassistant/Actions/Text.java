@@ -1,9 +1,16 @@
 package app.developer.jtsingla.myassistant.Actions;
 
+import android.Manifest;
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
+import android.telephony.PhoneNumberUtils;
+import android.telephony.SmsManager;
 import android.util.Log;
 import android.util.Pair;
+import android.widget.Toast;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -35,7 +42,9 @@ public class Text {
         /* when user is yet to enter a name, just entered the keyword. */
         GetContact("GetContact"),
         /* when user is yet to enter what to text */
-        GetText("GetText");
+        GetText("GetText"),
+        /* when user is yet to enter text Method */
+        GetTextMethod("GetTextMethod");
 
         private String actionType;
 
@@ -47,8 +56,8 @@ public class Text {
     private enum textMethod {
         WHATSAPPALWAYS("Always use whatsapp?"),
         MESSAGINGALWAYS("Always use messaging?"),
-        WHATSAPP("Use whatsapp?"),
-        MESSAGING("Use messaging?");
+        WHATSAPP("Use whatsapp this time?"),
+        MESSAGING("Use messaging this time?");
 
         private String textMethod;
 
@@ -100,6 +109,7 @@ public class Text {
     private static String whatToText = "What is the message?";
     private static String MYACTION = "text";
     private static String sendingText = "Sending a text to %s : %s";
+    private static String whichTextMethod = "Please select a method with method number.";
 
     public static void attemptSendText(Context context, String message) {
         if (isNegate(message)) {
@@ -151,6 +161,8 @@ public class Text {
             handleGetResultFromContactListAction(context, message);
         } else if (subAction.equals(actionTypes.GetText.toString())) {
             handleGetTextAction(context, message);
+        } else if (subAction.equals(actionTypes.GetTextMethod.toString())) {
+            handleGetTextMethod(context, message);
         } else {
             /* place holder for adding other cases later on */
             /* TODO: should we mark the actions as done */
@@ -228,6 +240,57 @@ public class Text {
         }
     }
 
+    private static void handleGetTextMethod(Context context, String message) {
+        try {
+            int idx = convertStringResponseToInt(message);
+            if (idx == 0) idx = Integer.parseInt(message);
+            if (idx <= 0 || idx > 4) {
+                messages.add(new Message(false, "Please select a number from 1 - 4"));
+                /* still expect a new number from user, i.e do not mark action as done */
+                return;
+            }
+            /* get TextDTO from shared prefs */
+            TextDTO textDTO = readTextDTOFromSharedPreferences(context);
+            if (textDTO == null || textDTO.isDummyContact() || textDTO.isDummyText()) {
+                /* should not be the case, we ensured before asking method for all other fields
+                to have proper values. ALARM
+                 */
+                return;
+            }
+            switch (idx) {
+                case 1:
+                    /* use messaging this time,
+                    no need to put this in shared pref as it is one time thing*/
+                    sendTextUsingMessaging(context, textDTO.getContact(), textDTO.getText());
+                    break;
+                case 2:
+                    /* use whatsapp this time,
+                     * no need to put this in shared prefs as it is one time thing*/
+                    sendTextUsingWhatsapp(context, textDTO.getContact(), textDTO.getText());
+                    break;
+                case 3:
+                    /* use messaging always,
+                     * put this in shared pref. TODO: later on give an option to change somehow */
+                    writeTextMethodToSharedPreferences(context, textMethod
+                            .MESSAGINGALWAYS.toString());
+                    sendTextUsingMessaging(context, textDTO.getContact(), textDTO.getText());
+                    break;
+                case 4:
+                    /* use whatsapp always,
+                     * put this in shared pref, TODO: later on give an option to change somehow */
+                    writeTextMethodToSharedPreferences(context, textMethod
+                            .WHATSAPPALWAYS.toString());
+                    sendTextUsingWhatsapp(context, textDTO.getContact(), textDTO.getText());
+                    break;
+                default:
+            }
+        } catch (NumberFormatException nfe) {
+            Log.e(MYACTION, nfe.getMessage());
+            ActionDecider.performAction(context, message);
+        }
+        /* mark action as done */
+        markActionAsDone(context, MYACTION);
+    }
 
     public static void interfacePerformText(LinkedHashMap<String, String> probableContacts,
                                      String contactName, Context context) {
@@ -343,17 +406,15 @@ public class Text {
         }
     }
 
-    /* this API returns the method to be used if it is selected by the user, otherwise it
-     * asks the user for specifying the method and set the action as expected.
-     */
-    private static String whichMethod(Context context) {
-        String method = readTextMethodFromSharedPreferences(context);
-        if (method == null) {
-            /* user has not specified the method any-time */
-            /* ask the user to specify the action */
-        }
-        /* otherwise return the method which was selected by the user */
-        return method;
+    /* this API asks the user for specifying the method and set the action as expected. */
+    private static void askMethod(Context context) {
+        messages.add(new Message(false, whichTextMethod));
+        messages.add(new Message(false, "1: " + textMethod.MESSAGING.toString()));
+        messages.add(new Message(false, "2: " + textMethod.WHATSAPP.toString()));
+        messages.add(new Message(false, "3: " + textMethod.MESSAGINGALWAYS.toString()));
+        messages.add(new Message(false, "4: " + textMethod.WHATSAPPALWAYS.toString()));
+        markActionAsExpected(context, MYACTION, actionTypes.GetTextMethod.toString(),
+                null/* do not need any object for this action to be marked */);
     }
 
     private static void performText(Context context, String text) {
@@ -405,11 +466,93 @@ public class Text {
 
     private static void actuallySendText(Context context, Pair<String, String> contact,
                                          String text) {
-        String sendingMessage = String.format(sendingText, contact.first , text);
-        messages.add(new Message(false, sendingMessage));
+        /* feeW! Finally! check if user has specified how to send the text i.e Text Method*/
+        String textMethod = readTextMethodFromSharedPreferences(context);
 
+        String sendingMessage = String.format(sendingText, contact.first , text);
+        if (textMethod != null &&
+                textMethod.equals(Text.textMethod.MESSAGINGALWAYS.toString())) {
+            messages.add(new Message(false, sendingMessage));
+            /* always use messaging for sending messages */
+            sendTextUsingMessaging(context, contact, text);
+        } else if (textMethod != null &&
+                textMethod.equals(Text.textMethod.WHATSAPPALWAYS.toString())) {
+            messages.add(new Message(false, sendingMessage));
+            /* always use whatsapp for sending messages */
+            sendTextUsingWhatsapp(context, contact, text);
+        } else {
+            /* ask user about how to send the text */
+            /* save text data to shared preferences,
+                so that we can use it after method is specified */
+            TextDTO textDTO = readTextDTOFromSharedPreferences(context);
+            textDTO.setText(text);
+            textDTO.setContact(contact);
+            writeTextDTOToSharedPreferences(context, textDTO);
+            askMethod(context);
+            return;
+        }
         /* mark textDTO as dummy for subsequent requests */
         writeTextDTOToSharedPreferences(context, null);
         markActionAsDone(context, MYACTION);
+    }
+
+    private static void sendTextUsingMessaging(Context context, Pair<String, String> contact,
+                                               String text) {
+        try {
+            if (isSendSMSPermission((Activity)context)) {
+                SmsManager smsManager = SmsManager.getDefault();
+                smsManager.sendTextMessage(contact.second, null, text, null, null);
+                messages.add(new Message(false, "SMS successfully sent."));
+            } else {
+                messages.add(new Message(false, "Please give permission to send SMS."));
+                /* request permission again */ // TODO: add permission expected response
+                HomeActivity.Permissions.checkSendSMSPermission((Activity)context);
+            }
+        } catch (Exception ex) {
+            messages.add(new Message(false, "Error while sending SMS."));
+            ex.printStackTrace();
+        }
+    }
+
+    private static boolean isSendSMSPermission(Activity activity) {
+        return isPermissionGranted(activity, Manifest.permission.SEND_SMS);
+    }
+
+    private static void sendTextUsingWhatsapp(Context context, Pair<String, String> contact,
+                                              String text) {
+/*
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setType("text/plain");
+
+        intent.setPackage("com.whatsapp");
+        if (intent != null) {
+            intent.putExtra(Intent.EXTRA_TEXT, text);//
+            context.startActivity(Intent.createChooser(intent, text));
+        } else {
+            Toast.makeText(context, "App not found", Toast.LENGTH_SHORT)
+                    .show();
+        }
+*/
+        String countryCode = "91"; // hard coding for india as of now for testing
+/*
+        Uri uri = Uri.parse("smsto:" + countryCode +
+                contact.second.substring(contact.second.length()-10) */
+/* taking last 10 characters*//*
+);
+        Intent i = new Intent(Intent.ACTION_SEND, uri);
+        i.setType("text/plain");
+        i.putExtra(Intent.EXTRA_TEXT, text);
+        i.setPackage("com.whatsapp");
+        context.startActivity(i);
+
+*/
+        Intent sendIntent = new Intent("android.intent.action.MAIN");
+        sendIntent.setComponent(new ComponentName("com.whatsapp","com.whatsapp.Conversation"));
+        sendIntent.putExtra("jid", PhoneNumberUtils.stripSeparators(countryCode +
+                contact.second.substring(contact.second.length()-10))+"@s.whatsapp.net");
+        sendIntent.putExtra(Intent.EXTRA_TEXT, text);
+        sendIntent.setType("text/plain");
+        sendIntent.setAction(Intent.ACTION_SEND);
+        context.startActivity(sendIntent);
     }
 }

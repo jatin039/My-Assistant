@@ -237,8 +237,10 @@ public class HomeActivity extends AppCompatActivity {
     public static class Permissions {
         private static final String[] PERMISSIONS_CONTACT = {Manifest.permission.READ_CONTACTS};
         private static final String[] PERMISSION_CALLS = {Manifest.permission.CALL_PHONE};
+        private static final String[] PERMISSION_SMS = {Manifest.permission.SEND_SMS};
         private static final int REQUEST_CONTACTS_READ = 1;
         private static final int MAKE_PHONE_CALLS = 2;
+        private static final int SEND_SMS = 3;
 
         public static final String PERMISSION_TAG = "permissions_tag";
 
@@ -263,6 +265,29 @@ public class HomeActivity extends AppCompatActivity {
             } else {
                 ActivityCompat.requestPermissions(activity, PERMISSIONS_CONTACT,
                         REQUEST_CONTACTS_READ);
+            }
+        }
+
+        public static void requestSendSMSPermission(final Activity activity) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(activity,
+                    Manifest.permission.SEND_SMS)) {
+                View v = activity.findViewById(R.id.edit_bar);
+                /* hide the keyboard before displaying snackbar, otherwise it will be covered by
+                 * the keyboard */
+                hideSoftKeyboard(activity);
+                Snackbar.make(v, R.string.send_sms,
+                        Snackbar.LENGTH_INDEFINITE)
+                        .setAction(R.string.ok, new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                ActivityCompat
+                                        .requestPermissions(activity, PERMISSION_SMS,
+                                                SEND_SMS);
+                            }
+                        })
+                        .show();
+            } else {
+                ActivityCompat.requestPermissions(activity, PERMISSION_SMS, SEND_SMS);
             }
         }
 
@@ -293,6 +318,7 @@ public class HomeActivity extends AppCompatActivity {
             /* check Contacts Read Permission */
             checkContactReadPermission(activity);
             checkMakeCallPermission(activity);
+            checkSendSMSPermission(activity);
         }
 
         public static void checkContactReadPermission(Activity activity) {
@@ -319,6 +345,19 @@ public class HomeActivity extends AppCompatActivity {
             } else {
                 // Make calls permission has been granted.
                 Log.i(PERMISSION_TAG, "Make call permission have already been granted.");
+            }
+        }
+
+        public static void checkSendSMSPermission(Activity activity) {
+            if (ActivityCompat.checkSelfPermission(activity, Manifest.permission.SEND_SMS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                // Make calls permissions have not been granted.
+                Log.i(PERMISSION_TAG, "Send SMS permission has not been granted. Requesting" +
+                        " permissions.");
+                requestSendSMSPermission(activity);
+            } else {
+                // Make calls permission has been granted.
+                Log.i(PERMISSION_TAG, "Send SMS permission have already been granted.");
             }
         }
     }

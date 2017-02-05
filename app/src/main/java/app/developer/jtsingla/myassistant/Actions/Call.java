@@ -303,7 +303,7 @@ public class Call {
             markActionAsDone(context, MYACTION);
         } else {
             messages.add(new Message(false, "Please give permission to call."));
-            /* request permission again */
+            /* request permission again */ // TODO: add permission expected response
             HomeActivity.Permissions.checkMakeCallPermission((Activity)context);
         }
     }
